@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tablero Troncales · Facturación en tiempo real</title>
+<style>
+  :root{
+    --azul:#00519B; --azul-osc:#003B72; --azul-claro:#2E7CC4;
+    --cian:#4FC3E8; --cian-suave:#E3F2FB;
+    --amarillo:#F5A623; --verde:#1E9E6A; --rojo:#D64550; --violeta:#5E35B1;
+    --gris-bg:#F0F3F7; --gris-panel:#FFFFFF; --gris-linea:#E2E8F0;
+    --gris-txt:#33475B; --gris-suave:#6B7C93;
+    --sombra:0 1px 3px rgba(0,40,90,.08),0 4px 16px rgba(0,40,90,.06);
+    --radio:12px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:'Segoe UI',-apple-system,Roboto,Helvetica,Arial,sans-serif;background:var(--gris-bg);color:var(--gris-txt);-webkit-font-smoothing:antialiased}
+  .hidden{display:none !important}
+
+  /* LOGIN */
+  #login{position:fixed;inset:0;z-index:100;background:linear-gradient(135deg,var(--azul-osc) 0%,var(--azul) 60%,var(--azul-claro) 100%);display:flex;align-items:center;justify-content:center;padding:20px;overflow:hidden}
+  .login-chevrons{position:absolute;top:-60px;right:-40px;opacity:.12;font-size:340px;font-weight:800;color:#fff;letter-spacing:-30px;user-select:none;pointer-events:none}
+  .login-card{background:#fff;border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.35);width:100%;max-width:410px;padding:40px 36px;position:relative;z-index:2}
+  .brand{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+  .brand-mark{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--azul),var(--cian));display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;box-shadow:0 4px 12px rgba(0,81,155,.4)}
+  .brand h1{font-size:19px;color:var(--azul);letter-spacing:.3px}
+  .brand span{display:block;font-size:11px;color:var(--gris-suave);font-weight:600;letter-spacing:2px;text-transform:uppercase}
+  .login-card h2{font-size:15px;font-weight:600;color:var(--gris-txt);margin:24px 0 4px}
+  .login-card p.sub{font-size:13px;color:var(--gris-suave);margin-bottom:22px}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:12px;font-weight:600;color:var(--gris-suave);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+  .field input,.field select{width:100%;padding:12px 14px;border:1.5px solid var(--gris-linea);border-radius:9px;font-size:14px;color:var(--gris-txt);transition:border .15s,box-shadow .15s;background:#fff}
+  .field input:focus,.field select:focus{outline:none;border-color:var(--azul);box-shadow:0 0 0 3px rgba(0,81,155,.12)}
+  .btn-login{width:100%;padding:13px;background:var(--azul);color:#fff;border:none;border-radius:9px;font-size:15px;font-weight:600;cursor:pointer;transition:background .15s,transform .05s;margin-top:4px}
+  .btn-login:hover{background:var(--azul-osc)} .btn-login:active{transform:scale(.99)}
+  .demo-hint{margin-top:20px;padding-top:18px;border-top:1px solid var(--gris-linea);font-size:12px;color:var(--gris-suave)}
+  .demo-hint b{color:var(--gris-txt)}
+  .role-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .role-chip{font-size:11px;padding:5px 10px;border-radius:20px;background:var(--cian-suave);color:var(--azul);cursor:pointer;font-weight:600;border:1px solid transparent}
+  .role-chip:hover{border-color:var(--azul-claro)}
+
+  /* SHELL */
+  #app{display:flex;min-height:100vh}
+  #sidebar{width:255px;background:linear-gradient(180deg,var(--azul-osc),var(--azul));color:#fff;display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;z-index:40;transition:transform .25s ease}
+  .side-brand{padding:20px 20px 18px;display:flex;align-items:center;gap:11px;border-bottom:1px solid rgba(255,255,255,.12)}
+  .side-brand .brand-mark{width:38px;height:38px;font-size:19px}
+  .side-brand h1{font-size:15px;color:#fff;line-height:1.1}
+  .side-brand span{font-size:9px;color:var(--cian);letter-spacing:1.5px;text-transform:uppercase;font-weight:700}
+  .nav{flex:1;padding:14px 12px;overflow-y:auto}
+  .nav-group-label{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:rgba(255,255,255,.45);padding:14px 12px 6px;font-weight:700}
+  .nav-item{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:9px;cursor:pointer;color:rgba(255,255,255,.82);font-size:13.5px;font-weight:500;margin-bottom:2px;transition:background .12s,color .12s;border:none;background:none;width:100%;text-align:left;font-family:inherit}
+  .nav-item:hover{background:rgba(255,255,255,.10);color:#fff}
+  .nav-item.active{background:#fff;color:var(--azul);font-weight:600}
+  .nav-item .ico{width:20px;text-align:center;font-size:15px;flex-shrink:0}
+  .nav-item.locked{opacity:.38;cursor:not-allowed}
+  .nav-item.locked:hover{background:none;color:rgba(255,255,255,.82)}
+  .side-user{padding:14px 16px;border-top:1px solid rgba(255,255,255,.12);display:flex;align-items:center;gap:11px}
+  .avatar{width:36px;height:36px;border-radius:50%;background:var(--cian);color:var(--azul-osc);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0}
+  .side-user .u-info{flex:1;min-width:0}
+  .side-user .u-name{font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .side-user .u-role{font-size:11px;color:var(--cian)}
+  .btn-logout{background:rgba(255,255,255,.12);border:none;color:#fff;padding:7px 9px;border-radius:7px;cursor:pointer;font-size:13px}
+  .btn-logout:hover{background:rgba(255,255,255,.24)}
+
+  #main{flex:1;margin-left:255px;display:flex;flex-direction:column;min-width:0}
+  .topbar{background:#fff;border-bottom:1px solid var(--gris-linea);padding:0 26px;height:64px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:30}
+  .hamburger{display:none;background:none;border:none;font-size:22px;color:var(--azul);cursor:pointer}
+  .topbar h2{font-size:19px;color:var(--gris-txt);font-weight:700;flex:1}
+  .btn-export{display:flex;align-items:center;gap:7px;background:var(--azul);color:#fff;border:none;padding:9px 15px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s}
+  .btn-export:hover{background:var(--azul-osc)}
+  .btn-export:disabled{background:var(--gris-linea);color:var(--gris-suave);cursor:not-allowed}
+  .live-badge{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--verde);background:#E8F7F0;padding:6px 12px;border-radius:20px}
+  .live-dot{width:8px;height:8px;border-radius:50%;background:var(--verde);animation:pulse 1.8s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(30,158,106,.5)}70%{box-shadow:0 0 0 7px rgba(30,158,106,0)}100%{box-shadow:0 0 0 0 rgba(30,158,106,0)}}
+  .last-upd{font-size:12px;color:var(--gris-suave)}
+  .content{padding:26px;max-width:1500px;width:100%}
+
+  /* FILTROS */
+  .filters{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:22px;align-items:end}
+  .filter{display:flex;flex-direction:column;gap:5px}
+  .filter label{font-size:11px;font-weight:700;color:var(--gris-suave);text-transform:uppercase;letter-spacing:.5px}
+  .filter select,.filter input{padding:9px 12px;border:1.5px solid var(--gris-linea);border-radius:8px;font-size:13px;background:#fff;color:var(--gris-txt);min-width:150px}
+  .filter select:focus,.filter input:focus{outline:none;border-color:var(--azul)}
+  .filter-note{font-size:11px;color:var(--gris-suave);width:100%;margin-top:-8px}
+
+  /* KPIs */
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px}
+  .kpi{background:var(--gris-panel);border-radius:var(--radio);padding:20px 22px;box-shadow:var(--sombra);position:relative;overflow:hidden;border-left:4px solid var(--azul)}
+  .kpi.amar{border-left-color:var(--amarillo)} .kpi.verde{border-left-color:var(--verde)}
+  .kpi.rojo{border-left-color:var(--rojo)} .kpi.cian{border-left-color:var(--cian)} .kpi.viol{border-left-color:var(--violeta)}
+  .kpi .k-label{font-size:12px;color:var(--gris-suave);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+  .kpi .k-val{font-size:27px;font-weight:800;color:var(--gris-txt);line-height:1;letter-spacing:-.5px}
+  .kpi .k-val small{font-size:14px;font-weight:600;color:var(--gris-suave)}
+  .kpi .k-sub{font-size:12px;color:var(--gris-suave);margin-top:7px}
+  .kpi .k-sub.up{color:var(--verde)} .kpi .k-sub.down{color:var(--rojo)}
+  .kpi .k-ico{position:absolute;right:16px;top:16px;font-size:22px;opacity:.18}
+
+  /* PANELES */
+  .panel{background:var(--gris-panel);border-radius:var(--radio);box-shadow:var(--sombra);margin-bottom:24px;overflow:hidden}
+  .panel-head{padding:18px 22px;border-bottom:1px solid var(--gris-linea);display:flex;align-items:center;gap:12px}
+  .panel-head h3{font-size:16px;color:var(--gris-txt);font-weight:700;flex:1}
+  .panel-head .tag{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px}
+  .tag.amar{background:#FEF3E2;color:#B9740F} .tag.verde{background:#E8F7F0;color:#0F7A4F} .tag.rojo{background:#FBE9EA;color:#B02A34} .tag.azul{background:var(--cian-suave);color:var(--azul)} .tag.viol{background:#EDE7F6;color:#5E35B1}
+  .panel-body{padding:22px} .panel-body.nopad{padding:0}
+
+  /* TABLA */
+  .tbl-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  thead th{background:var(--azul);color:#fff;text-align:left;padding:11px 14px;font-weight:600;white-space:nowrap;font-size:12px;letter-spacing:.3px}
+  thead th.num{text-align:right}
+  tbody td{padding:10px 14px;border-bottom:1px solid var(--gris-linea);white-space:nowrap;color:var(--gris-txt)}
+  tbody td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+  tbody tr:hover{background:var(--cian-suave)} tbody tr:nth-child(even){background:#FAFBFD} tbody tr:nth-child(even):hover{background:var(--cian-suave)}
+  .pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;display:inline-block}
+  .pill.fact{background:#E8F7F0;color:#0F7A4F} .pill.pend{background:#FEF3E2;color:#B9740F} .pill.crit{background:#FBE9EA;color:#B02A34} .pill.prov{background:var(--cian-suave);color:var(--azul)} .pill.empl{background:#EDE7F6;color:#5E35B1}
+  .tbl-foot{padding:12px 18px;font-size:12px;color:var(--gris-suave);display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--gris-linea)}
+  .pager{display:flex;gap:6px}
+  .pager button{border:1px solid var(--gris-linea);background:#fff;border-radius:6px;padding:5px 10px;cursor:pointer;color:var(--gris-txt)}
+  .pager button:hover{border-color:var(--azul);color:var(--azul)}
+
+  /* BARRAS */
+  .chart{display:flex;align-items:flex-end;gap:14px;height:240px;padding:10px 4px 0}
+  .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end;position:relative}
+  .bar-stack{width:100%;max-width:54px;display:flex;flex-direction:column-reverse;border-radius:6px 6px 0 0;overflow:hidden}
+  .bar-seg{width:100%;transition:height .5s ease}
+  .bar-seg.pend{background:var(--amarillo)} .bar-seg.fact{background:var(--azul)}
+  .bar-label{font-size:12px;color:var(--gris-suave);font-weight:600}
+  .bar-val{font-size:11px;color:var(--gris-txt);font-weight:700;position:absolute;top:-2px;transform:translateY(-100%)}
+  .legend{display:flex;gap:20px;justify-content:center;margin-top:16px;font-size:12px;color:var(--gris-suave)}
+  .legend span{display:flex;align-items:center;gap:7px}
+  .dot{width:12px;height:12px;border-radius:3px} .dot.pend{background:var(--amarillo)} .dot.fact{background:var(--azul)}
+
+  /* DONUT */
+  .fact-row{display:grid;grid-template-columns:220px 1fr;gap:32px;align-items:center}
+  .donut{position:relative;width:200px;height:200px;margin:0 auto}
+  .donut svg{transform:rotate(-90deg)}
+  .donut .center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .donut .center .big{font-size:38px;font-weight:800;color:var(--azul)}
+  .donut .center .lbl{font-size:12px;color:var(--gris-suave);font-weight:600}
+  .fact-breakdown{display:flex;flex-direction:column;gap:14px}
+  .fb-row{display:flex;align-items:center;gap:12px}
+  .fb-bar{flex:1;height:26px;background:var(--gris-bg);border-radius:6px;overflow:hidden;position:relative}
+  .fb-fill{height:100%;border-radius:6px;display:flex;align-items:center;padding-left:10px;color:#fff;font-size:12px;font-weight:700}
+  .fb-name{font-size:13px;font-weight:600;width:170px;color:var(--gris-txt)}
+  .fb-val{font-size:13px;font-weight:700;width:70px;text-align:right}
+
+  .locked-banner{background:linear-gradient(135deg,#FBE9EA,#FEF3E2);border:1px solid #F5C9A0;border-radius:var(--radio);padding:40px;text-align:center;color:var(--gris-txt)}
+  .locked-banner .lock-ico{font-size:44px;margin-bottom:12px}
+  .locked-banner h3{font-size:19px;margin-bottom:8px} .locked-banner p{font-size:14px;color:var(--gris-suave);max-width:440px;margin:0 auto}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .info-banner{background:var(--cian-suave);border:1px solid var(--azul-claro);border-radius:12px;padding:14px 18px;margin-bottom:22px;font-size:13px;color:var(--azul-osc)}
+
+  /* MODAL EXPORT */
+  .modal-bg{position:fixed;inset:0;background:rgba(0,20,50,.55);z-index:80;display:flex;align-items:center;justify-content:center;padding:20px}
+  .modal{background:#fff;border-radius:14px;width:100%;max-width:720px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.4)}
+  .modal-head{padding:20px 24px;border-bottom:1px solid var(--gris-linea);display:flex;align-items:center;gap:12px}
+  .modal-head h3{font-size:17px;flex:1;color:var(--gris-txt)}
+  .modal-close{background:none;border:none;font-size:22px;color:var(--gris-suave);cursor:pointer;line-height:1}
+  .modal-body{padding:20px 24px;overflow-y:auto}
+  .export-toolbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+  .export-toolbar .mini-btn{font-size:12px;padding:6px 12px;border:1px solid var(--gris-linea);background:#fff;border-radius:7px;cursor:pointer;color:var(--azul);font-weight:600}
+  .export-toolbar .mini-btn:hover{border-color:var(--azul);background:var(--cian-suave)}
+  .export-count{font-size:12px;color:var(--gris-suave);margin-left:auto}
+  .fmt-select{margin-left:8px;padding:6px 10px;border:1px solid var(--gris-linea);border-radius:7px;font-size:12px}
+  .col-groups{display:flex;flex-direction:column;gap:18px}
+  .col-group h4{font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--gris-suave);margin-bottom:10px;font-weight:700}
+  .col-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px}
+  .col-check{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;font-size:12.5px;cursor:pointer;transition:background .1s;color:var(--gris-txt)}
+  .col-check:hover{background:var(--cian-suave)}
+  .col-check input{width:15px;height:15px;accent-color:var(--azul);cursor:pointer}
+  .modal-foot{padding:16px 24px;border-top:1px solid var(--gris-linea);display:flex;gap:12px;align-items:center}
+  .modal-foot .btn-primary{background:var(--verde);color:#fff;border:none;padding:11px 20px;border-radius:9px;font-weight:600;font-size:14px;cursor:pointer;flex:1}
+  .modal-foot .btn-primary:hover{background:#178553}
+  .modal-foot .btn-ghost{background:#fff;border:1px solid var(--gris-linea);padding:11px 18px;border-radius:9px;font-weight:600;font-size:14px;cursor:pointer;color:var(--gris-txt)}
+
+  @media(max-width:1000px){
+    #sidebar{transform:translateX(-100%)} #sidebar.open{transform:translateX(0)}
+    #main{margin-left:0} .hamburger{display:block}
+    .split{grid-template-columns:1fr} .fact-row{grid-template-columns:1fr;gap:20px}
+  }
+  @media(max-width:560px){
+    .content{padding:16px} .topbar{padding:0 14px} .kpi .k-val{font-size:23px} .last-upd{display:none}
+    .btn-export span.lbl{display:none}
+  }
+  .sidebar-backdrop{display:none}
+  .sidebar-backdrop.show{display:block;position:fixed;inset:0;background:rgba(0,20,50,.5);z-index:35}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="login-chevrons">»»</div>
+  <div class="login-card">
+    <div class="brand"><div class="brand-mark">📦</div><div><h1>Tablero Troncales</h1><span>Facturación</span></div></div>
+    <h2>Ingresá a tu cuenta</h2>
+    <p class="sub">Panel de control de facturación en tiempo real</p>
+    <div class="field"><label>Usuario</label><input type="text" id="loginUser" value="admin_clientes"></div>
+    <div class="field"><label>Contraseña</label><input type="password" id="loginPass" value="demo1234"></div>
+    <div class="field"><label>Perfil de acceso (demo)</label>
+      <select id="loginRole">
+        <option value="admin_clientes">admin_clientes</option>
+        <option value="admin_controlgestion">admin_controlgestion</option>
+        <option value="admin_trafico">admin_trafico</option>
+        <option value="gerencia">gerencia — ve todo</option>
+      </select></div>
+    <button class="btn-login" onclick="doLogin()">Ingresar</button>
+    <div class="demo-hint"><b>Modo demostración.</b> Elegí un perfil para ver cómo cambian permisos y filtros:
+      <div class="role-chips">
+        <span class="role-chip" onclick="quickRole('admin_clientes')">Clientes</span>
+        <span class="role-chip" onclick="quickRole('admin_controlgestion')">Control de gestión</span>
+        <span class="role-chip" onclick="quickRole('admin_trafico')">Tráfico</span>
+        <span class="role-chip" onclick="quickRole('gerencia')">Gerencia</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+  <div class="sidebar-backdrop" id="backdrop" onclick="toggleSidebar()"></div>
+  <aside id="sidebar">
+    <div class="side-brand"><div class="brand-mark">📦</div><div><h1>Troncales</h1><span>Facturación</span></div></div>
+    <nav class="nav" id="nav"></nav>
+    <div class="side-user">
+      <div class="avatar" id="uAvatar">A</div>
+      <div class="u-info"><div class="u-name" id="uName">Usuario</div><div class="u-role" id="uRole">Rol</div></div>
+      <button class="btn-logout" onclick="doLogout()" title="Salir">⏻</button>
+    </div>
+  </aside>
+  <div id="main">
+    <div class="topbar">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <h2 id="viewTitle">Resumen</h2>
+      <button class="btn-export" id="btnExport" onclick="openExport()">⬇ <span class="lbl">Exportar</span></button>
+      <div class="live-badge"><span class="live-dot"></span> En vivo</div>
+      <span class="last-upd" id="lastUpd">Actualizado hace 2 min</span>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<!-- MODAL EXPORT -->
+<div class="modal-bg hidden" id="exportModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Exportar datos</h3>
+      <select class="fmt-select" id="exportFmt"><option>Excel (.xlsx)</option><option>CSV</option><option>Google Sheets</option></select>
+      <button class="modal-close" onclick="closeExport()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="info-banner" style="margin-bottom:16px">Elegí qué columnas del back incluir. Por defecto van <b>todas</b>. Podés guardar esta selección como plantilla para el próximo export.</div>
+      <div class="export-toolbar">
+        <button class="mini-btn" onclick="exportAll(true)">Seleccionar todas</button>
+        <button class="mini-btn" onclick="exportAll(false)">Ninguna</button>
+        <button class="mini-btn" onclick="exportPreset()">Preset facturación</button>
+        <span class="export-count" id="exportCount"></span>
+      </div>
+      <div class="col-groups" id="colGroups"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost" onclick="closeExport()">Cancelar</button>
+      <button class="btn-primary" onclick="doExport()">Exportar selección</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===================== DATOS SIMULADOS ===================== */
+const DATA = {
+  kpis:{totalViaje:5140859452,totalDistancia:5757617036,viajes:7841,sinProveedor:0,porFacturar:2225,facturado:5616},
+  pctFacturado:71.6,
+  pendClientes:{viajes:2225,monto:1187340210},
+  pendEmpleadores:{viajes:1980,monto:1043920775},
+  facturadoTotal:{viajes:5616,monto:9711138278},
+  facturadoCliente:{viajes:3010,monto:5140859452},
+  facturadoEmpleador:{viajes:2606,monto:4570278826},
+  historico:[{mes:'Sep',pend:410,fact:980},{mes:'Oct',pend:520,fact:1120},{mes:'Nov',pend:610,fact:1240},{mes:'Dic',pend:480,fact:1360},{mes:'Ene',pend:390,fact:1180},{mes:'Feb',pend:340,fact:990}],
+  pendClienteRows:[
+    {fecha:'16/03/2026',plan:'ACCH-MER…',veh:'HLZF33',cond:'TITO OROS',cliente:'YPF CHILE',order:'0572026MTAR116JP5357',monto:214300},
+    {fecha:'17/03/2026',plan:'ACCH-MER…',veh:'HLZF33',cond:'TITO OROS',cliente:'YPF CHILE',order:'2026MTCL078JP5353',monto:198750},
+    {fecha:'17/03/2026',plan:'ACCH-AGL…',veh:'HLZF34',cond:'ANGEL GARAY',cliente:'CD MENDOZA',order:'AGLCH043/2026TRPWSX21',monto:305120},
+    {fecha:'23/03/2026',plan:'ACCH-PER…',veh:'HKRD94',cond:'HERNAN ALVAREZ',cliente:'STI-SAN ANTONIO',order:'21/3/26JE5194',monto:176900},
+    {fecha:'23/03/2026',plan:'RHEEM 1E…',veh:'245-NBC016',cond:'NESTOR F. GUERRA',cliente:'RHEEM SAN LUIS',order:'260320162226-57-PPF',monto:421000},
+    {fecha:'26/03/2026',plan:'OP.ARG 18/3',veh:'309-AG994HA',cond:'MATIAS SILVA',cliente:'CND MENDOZA',order:'260323125216-2-PVV',monto:512300},
+    {fecha:'27/03/2026',plan:'ACCH-YPF…',veh:'HKRD90',cond:'JOSE HERRERA',cliente:'YPF CHILE',order:'AC02926PWSX18',monto:167800},
+    {fecha:'31/03/2026',plan:'musimundo…',veh:'299-AG188VN',cond:'JORGE VALEN…',cliente:'CND MENDOZA',order:'260331172141-PPF',monto:388600},
+  ],
+  pendEmpleadorRows:[
+    {fecha:'16/03/2026',empl:'ANDESMAR CARGAS S.A.',veh:'HLZF33',cond:'TITO OROS',concepto:'Flete troncal',order:'0572026MTAR116JP5357',monto:142000},
+    {fecha:'17/03/2026',empl:'ANDESMAR CARGAS S.A.',veh:'HLZF34',cond:'ANGEL GARAY',concepto:'Flete troncal',order:'AGLCH043/2026TRPWSX21',monto:210300},
+    {fecha:'23/03/2026',empl:'TRANSPORTES MERCOTRUCK',veh:'245-NBC016',cond:'NESTOR F. GUERRA',concepto:'Viaje largo',order:'260320162226-57-PPF',monto:298000},
+    {fecha:'26/03/2026',empl:'ANDESMAR CARGAS S.A.',veh:'309-AG994HA',cond:'MATIAS SILVA',concepto:'Flete troncal',order:'260323125216-2-PVV',monto:356200},
+    {fecha:'27/03/2026',empl:'AUTOTRANSPORTES ANDESMAR',veh:'HKRD90',cond:'JOSE HERRERA',concepto:'Distancia',order:'AC02926PWSX18',monto:118400},
+    {fecha:'31/03/2026',empl:'ANDESMAR CARGAS S.A.',veh:'299-AG188VN',cond:'JORGE VALEN…',concepto:'Flete troncal',order:'260331172141-PPF',monto:271900},
+  ],
+  factClienteRows:[
+    {fecha:'02/03/2026',cliente:'TECH PACK SRL',folio:'F-A-0012843',veh:'HLZF20',cond:'LUIS PEREZ',order:'TP2026-0912',monto:867400},
+    {fecha:'04/03/2026',cliente:'EXPRESS LINEAS',folio:'F-A-0012901',veh:'HAY594',cond:'MARIO DIAZ',order:'EXL-88213',monto:342100},
+    {fecha:'08/03/2026',cliente:'TRANSFARMACO S A',folio:'F-A-0013002',veh:'HLZF33',cond:'TITO OROS',order:'TFM-0455',monto:194000},
+    {fecha:'14/03/2026',cliente:'ANDESMAR CARGAS S.A',folio:'F-A-0013188',veh:'HKRD90',cond:'JOSE HERRERA',order:'ADC-9902',monto:412300},
+  ],
+  factEmpleadorRows:[
+    {fecha:'05/03/2026',empl:'NESTLE ARGENTINA S.A.',folio:'F-B-0004521',veh:'HKRD86',cond:'EDUARDO NIEVAS',order:'NES-2026-771',monto:512700},
+    {fecha:'11/03/2026',empl:'GUERRINI NEUMATICOS',folio:'F-B-0004610',veh:'269-OWB157',cond:'LUCAS CORTI',order:'GNE-1120',monto:275800},
+    {fecha:'18/03/2026',empl:'TRANSPORTES MERCOTRUCK',folio:'F-B-0004702',veh:'245-NBC016',cond:'NESTOR GUERRA',order:'MTK-3301',monto:298000},
+  ],
+  tarifarioIngresos:[
+    {tag:'TRONCAL-CH',tipo:'Distancia',entidad:'TECH PACK SRL',monto:1875.50,unidad:'$/km'},
+    {tag:'TRONCAL-CH',tipo:'Viaje',entidad:'EXPRESS LINEAS',monto:202585.00,unidad:'$/viaje'},
+    {tag:'REGIONAL-AR',tipo:'Distancia',entidad:'NESTLE ARGENTINA',monto:1420.00,unidad:'$/km'},
+    {tag:'REGIONAL-AR',tipo:'Viaje',entidad:'TRANSFARMACO',monto:194041.00,unidad:'$/viaje'},
+    {tag:'URBANO-MZA',tipo:'Viaje',entidad:'GUERRINI NEUMATICOS',monto:75821.00,unidad:'$/viaje'},
+  ],
+  tarifarioCostos:[
+    {tag:'TRONCAL-CH',tipo:'Distancia',entidad:'ANDESMAR CARGAS S.A.',monto:1240.00,unidad:'$/km'},
+    {tag:'TRONCAL-CH',tipo:'Viaje',entidad:'TRANSPORTES MERCOTRUCK',monto:145200.00,unidad:'$/viaje'},
+    {tag:'REGIONAL-AR',tipo:'Distancia',entidad:'AUTOTRANSPORTES ANDESMAR',monto:980.00,unidad:'$/km'},
+    {tag:'URBANO-MZA',tipo:'Viaje',entidad:'ANDESMAR CARGAS S.A.',monto:52430.00,unidad:'$/viaje'},
+  ],
+
+  // KPIs de estados de doble facturación
+  estados:{
+    pendTotal:      1240, // sin ningún folio
+    pendEmpleador:  985,  // tiene folio proveedor, falta empleador
+    pendProveedor:  760,  // tiene folio empleador, falta proveedor
+    facturadoTotal: 4856, // ambos folios
+  },
+  // Órdenes con su doble estado (proveedor + empleador)
+  ordenesEstado:[
+    {fecha:'16/03/2026',order:'0572026MTAR116JP5357',cliente:'YPF CHILE',empl:'ANDESMAR CARGAS S.A.',veh:'HLZF33',cond:'TITO OROS',
+      folioProv:'',montoProv:214300,folioEmpl:'',montoEmpl:142000,estado:'pendTotal'},
+    {fecha:'17/03/2026',order:'AGLCH043/2026TRPWSX21',cliente:'CD MENDOZA',empl:'ANDESMAR CARGAS S.A.',veh:'HLZF34',cond:'ANGEL GARAY',
+      folioProv:'F-A-0013002',montoProv:305120,folioEmpl:'',montoEmpl:210300,estado:'pendEmpleador'},
+    {fecha:'23/03/2026',order:'260320162226-57-PPF',cliente:'RHEEM SAN LUIS',empl:'TRANSPORTES MERCOTRUCK',veh:'245-NBC016',cond:'NESTOR F. GUERRA',
+      folioProv:'',montoProv:421000,folioEmpl:'F-B-0004702',montoEmpl:298000,estado:'pendProveedor'},
+    {fecha:'14/03/2026',order:'ADC-9902',cliente:'ANDESMAR CARGAS S.A',empl:'AUTOTRANSPORTES ANDESMAR',veh:'HKRD90',cond:'JOSE HERRERA',
+      folioProv:'F-A-0013188',montoProv:412300,folioEmpl:'F-B-0004610',montoEmpl:118400,estado:'facturadoTotal'},
+    {fecha:'26/03/2026',order:'260323125216-2-PVV',cliente:'CND MENDOZA',empl:'ANDESMAR CARGAS S.A.',veh:'309-AG994HA',cond:'MATIAS SILVA',
+      folioProv:'',montoProv:512300,folioEmpl:'',montoEmpl:356200,estado:'pendTotal'},
+    {fecha:'02/03/2026',order:'TP2026-0912',cliente:'TECH PACK SRL',empl:'ANDESMAR CARGAS S.A.',veh:'HLZF20',cond:'LUIS PEREZ',
+      folioProv:'F-A-0012843',montoProv:867400,folioEmpl:'F-B-0004521',montoEmpl:512700,estado:'facturadoTotal'},
+    {fecha:'27/03/2026',order:'AC02926PWSX18',cliente:'YPF CHILE',empl:'AUTOTRANSPORTES ANDESMAR',veh:'HKRD90',cond:'JOSE HERRERA',
+      folioProv:'F-A-0012901',montoProv:167800,folioEmpl:'',montoEmpl:118400,estado:'pendEmpleador'},
+    {fecha:'31/03/2026',order:'260331172141-PPF',cliente:'CND MENDOZA',empl:'ANDESMAR CARGAS S.A.',veh:'299-AG188VN',cond:'JORGE VALEN…',
+      folioProv:'',montoProv:388600,folioEmpl:'F-B-0004610',montoEmpl:271900,estado:'pendProveedor'},
+  ],
+};
+
+// Metadatos de los 4 estados de facturación
+const ESTADOS_FACT = {
+  pendTotal:      {label:'Pendiente Facturar',            desc:'Sin folio de proveedor ni de empleador', pill:'crit',  color:'var(--rojo)'},
+  pendEmpleador:  {label:'Pendiente Fac. Empleador',      desc:'Facturado a proveedor · falta empleador', pill:'pend',  color:'var(--amarillo)'},
+  pendProveedor:  {label:'Pendiente Fac. Proveedor',      desc:'Facturado a empleador · falta proveedor', pill:'prov',  color:'var(--cian)'},
+  facturadoTotal: {label:'Facturado TOTAL',               desc:'Facturado por ambos (dos folios)',        pill:'fact',  color:'var(--verde)'},
+};
+
+/* ===================== COLUMNAS DEL BACK (para exportador) ===================== */
+const COLS_BACK = {
+  'Orden / viaje':['pod__planned_date','pod__description','pod__route_code','pod__vehicle_code','pod__driver_name','pod__driver_dni','order__code','order__alt_code','order__status','order__otif'],
+  'Cliente / proveedor':['order__supplier_name','order__client_name','order__order_type_name','pod__address_name','pod__address_county','pod__address_state'],
+  'Empleador':['pod__employer_code','pod__employer_name','pod__driver_email'],
+  'Distancia / km':['pod__distance','DistanciaDrivinSupplier','DistanciaDrivinEmployer','pod__odometer_start','pod__odometer_end'],
+  'Costos / montos':['MontoPorViajeSupplier','MontoPorViajeEmployer','order__custom_6','order__units_1'],
+  'Facturación':['billing_supplier_folio','billing_supplier_status','billing_supplier_amount','billing_employer_folio','billing_employer_status','billing_employer_amount'],
+};
+
+/* ===================== ROLES ===================== */
+const ROLES = {
+  admin_clientes:{
+    name:'Admin Clientes', color:'#00519B',
+    views:['resumen','estadoFact','pendCliente','pendEmpleador','factTotal','factCliente','factEmpleador','historico','porcentaje','tarifIngresos'],
+    filtros:['periodo','fecha','cliente'],
+  },
+  admin_controlgestion:{
+    name:'Admin Control de Gestión', color:'#F5A623',
+    views:['resumen','estadoFact','pendCliente','pendEmpleador','factTotal','factCliente','factEmpleador','historico','porcentaje','tarifIngresos','tarifCostos'],
+    filtros:['periodo','fecha','empleador','conductor','vehiculo'],
+  },
+  admin_trafico:{
+    name:'Admin Tráfico', color:'#1E9E6A',
+    views:['resumen','estadoFact','pendCliente','pendEmpleador','factTotal','factCliente','factEmpleador','historico','porcentaje','tarifCostos'],
+    filtros:['periodo','fecha','cliente','empleador','conductor','vehiculo'],
+  },
+  gerencia:{
+    name:'Gerencia', color:'#5E35B1',
+    views:['resumen','estadoFact','pendCliente','pendEmpleador','factTotal','factCliente','factEmpleador','historico','porcentaje','tarifIngresos','tarifCostos'],
+    filtros:['periodo','fecha','cliente','empleador','conductor','vehiculo'],
+  },
+};
+
+const VIEWS = {
+  resumen:{label:'Resumen',ico:'▦',grupo:'Facturación'},
+  estadoFact:{label:'Estado de facturación',ico:'◱',grupo:'Facturación'},
+  pendCliente:{label:'Pendiente · Clientes',ico:'⏳',grupo:'Facturación'},
+  pendEmpleador:{label:'Pendiente · Empleadores',ico:'⏳',grupo:'Facturación'},
+  factTotal:{label:'Facturado · Total',ico:'✓',grupo:'Facturación'},
+  factCliente:{label:'Facturado · Clientes',ico:'✓',grupo:'Facturación'},
+  factEmpleador:{label:'Facturado · Empleadores',ico:'✓',grupo:'Facturación'},
+  historico:{label:'Histórico mensual',ico:'📈',grupo:'Control de gestión'},
+  porcentaje:{label:'% de facturación',ico:'◑',grupo:'Control de gestión'},
+  tarifIngresos:{label:'Esquema de ingresos',ico:'💵',grupo:'Tarifarios'},
+  tarifCostos:{label:'Esquema de costos',ico:'💰',grupo:'Tarifarios'},
+};
+const GRUPOS=['Facturación','Control de gestión','Tarifarios'];
+
+let currentRole='admin_clientes', currentView='resumen';
+
+/* ===================== HELPERS ===================== */
+const fmtMoney=n=>'$ '+n.toLocaleString('es-AR',{maximumFractionDigits:0});
+const fmtNum=n=>n.toLocaleString('es-AR');
+const fmtMillones=n=>n>=1e9?(n/1e9).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2})+' MM':n>=1e6?(n/1e6).toLocaleString('es-AR',{minimumFractionDigits:1,maximumFractionDigits:1})+' M':fmtNum(n);
+
+/* ===================== LOGIN ===================== */
+function quickRole(r){document.getElementById('loginRole').value=r;document.getElementById('loginUser').value=r;doLogin();}
+function doLogin(){
+  currentRole=document.getElementById('loginRole').value;
+  const uname=document.getElementById('loginUser').value||currentRole;
+  document.getElementById('login').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  const role=ROLES[currentRole];
+  document.getElementById('uName').textContent=uname;
+  document.getElementById('uRole').textContent=role.name;
+  document.getElementById('uAvatar').textContent=uname.charAt(0).toUpperCase();
+  document.getElementById('uAvatar').style.background=role.color;
+  currentView=role.views[0];
+  buildNav(); render();
+}
+function doLogout(){document.getElementById('app').classList.add('hidden');document.getElementById('login').classList.remove('hidden');closeExport();}
+
+/* ===================== NAV ===================== */
+function buildNav(){
+  const role=ROLES[currentRole];
+  let html='';
+  GRUPOS.forEach(g=>{
+    const items=Object.keys(VIEWS).filter(v=>VIEWS[v].grupo===g);
+    html+=`<div class="nav-group-label">${g}</div>`;
+    items.forEach(v=>{ html+=navItem(v, role.views.includes(v)); });
+  });
+  document.getElementById('nav').innerHTML=html;
+}
+function navItem(v,allowed){
+  const view=VIEWS[v];
+  if(!allowed) return `<button class="nav-item locked" title="Sin permiso para tu perfil"><span class="ico">${view.ico}</span>${view.label}<span style="margin-left:auto;font-size:12px">🔒</span></button>`;
+  return `<button class="nav-item ${v===currentView?'active':''}" onclick="go('${v}')"><span class="ico">${view.ico}</span>${view.label}</button>`;
+}
+function go(v){currentView=v;buildNav();render();if(window.innerWidth<=1000)toggleSidebar();}
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('backdrop').classList.toggle('show');}
+
+/* ===================== FILTROS por rol ===================== */
+function filterBar(){
+  const f=ROLES[currentRole].filtros;
+  const parts=[];
+  if(f.includes('periodo')) parts.push(`<div class="filter"><label>Período</label><select><option>Últimos 6 meses</option><option>Este mes</option><option>Trimestre actual</option><option>Año 2026</option><option>Personalizado…</option></select></div>`);
+  if(f.includes('fecha')) parts.push(`<div class="filter"><label>Desde</label><input type="date" value="2026-01-01"></div><div class="filter"><label>Hasta</label><input type="date" value="2026-03-31"></div>`);
+  if(f.includes('cliente')) parts.push(`<div class="filter"><label>Cliente</label><select><option>Todos</option><option>TECH PACK SRL</option><option>EXPRESS LINEAS</option><option>NESTLE ARGENTINA</option><option>YPF CHILE</option></select></div>`);
+  if(f.includes('empleador')) parts.push(`<div class="filter"><label>Empleador</label><select><option>Todos</option><option>ANDESMAR CARGAS S.A.</option><option>TRANSPORTES MERCOTRUCK</option><option>AUTOTRANSPORTES ANDESMAR</option></select></div>`);
+  if(f.includes('conductor')) parts.push(`<div class="filter"><label>Conductor</label><select><option>Todos</option><option>TITO OROS</option><option>ANGEL GARAY</option><option>JOSE HERRERA</option></select></div>`);
+  if(f.includes('vehiculo')) parts.push(`<div class="filter"><label>Vehículo</label><select><option>Todos</option><option>HLZF33</option><option>HKRD86</option><option>245-NBC016</option></select></div>`);
+  return `<div class="filters">${parts.join('')}<div class="filter-note">Filtros disponibles para tu perfil <b>${ROLES[currentRole].name}</b>.</div></div>`;
+}
+
+/* ===================== RENDER ===================== */
+function render(){
+  document.getElementById('viewTitle').textContent=VIEWS[currentView].label;
+  const c=document.getElementById('content');
+  const role=ROLES[currentRole];
+  const tableViews=['estadoFact','pendCliente','pendEmpleador','factTotal','factCliente','factEmpleador'];
+  document.getElementById('btnExport').disabled=!tableViews.includes(currentView);
+  if(!role.views.includes(currentView)){c.innerHTML=noAccess();return;}
+  c.innerHTML=({
+    resumen:viewResumen,estadoFact:viewEstadoFact,pendCliente:viewPendCliente,pendEmpleador:viewPendEmpleador,
+    factTotal:viewFactTotal,factCliente:viewFactCliente,factEmpleador:viewFactEmpleador,
+    historico:viewHistorico,porcentaje:viewPorcentaje,
+    tarifIngresos:viewTarifIngresos,tarifCostos:viewTarifCostos,
+  })[currentView]();
+  requestAnimationFrame(()=>document.querySelectorAll('.bar-seg[data-h]').forEach(e=>e.style.height=e.dataset.h+'px'));
+}
+function noAccess(){return `<div class="locked-banner"><div class="lock-ico">🔒</div><h3>No tenés acceso a esta sección</h3><p>Tu perfil actual (<b>${ROLES[currentRole].name}</b>) no incluye permisos para ver este contenido.</p></div>`;}
+
+/* ---------- RESUMEN ---------- */
+function viewResumen(){
+  const k=DATA.kpis;
+  return filterBar()+`
+  <div class="kpi-grid">
+    <div class="kpi"><div class="k-ico">🚚</div><div class="k-label">Total Tipo Viaje</div><div class="k-val">$ ${fmtMillones(k.totalViaje)}</div><div class="k-sub">Modalidad por viaje (CN)</div></div>
+    <div class="kpi cian"><div class="k-ico">📏</div><div class="k-label">Total Tipo Distancia</div><div class="k-val">$ ${fmtMillones(k.totalDistancia)}</div><div class="k-sub">Modalidad por km (CM)</div></div>
+    <div class="kpi"><div class="k-ico">📦</div><div class="k-label">Viajes totales</div><div class="k-val">${fmtNum(k.viajes)}</div><div class="k-sub">En el período</div></div>
+    <div class="kpi amar"><div class="k-ico">⏳</div><div class="k-label">Por facturar</div><div class="k-val">${fmtNum(k.porFacturar)}</div><div class="k-sub down">Requiere gestión</div></div>
+    <div class="kpi verde"><div class="k-ico">✓</div><div class="k-label">Facturados</div><div class="k-val">${fmtNum(k.facturado)}</div><div class="k-sub up">${DATA.pctFacturado}% del total</div></div>
+    <div class="kpi rojo"><div class="k-ico">⚠️</div><div class="k-label">Viajes sin proveedor</div><div class="k-val">${fmtNum(k.sinProveedor)}</div><div class="k-sub">Todo asignado</div></div>
+  </div>
+  <div class="split">
+    <div class="panel"><div class="panel-head"><h3>Estado de facturación</h3><span class="tag verde">En vivo</span></div><div class="panel-body">${miniDonut(DATA.pctFacturado)}</div></div>
+    <div class="panel"><div class="panel-head"><h3>Estados de doble facturación</h3><span class="tag azul">por orden</span></div><div class="panel-body"><div class="fact-breakdown">
+      ${fbRow('Pendiente Facturar',DATA.estados.pendTotal,DATA.kpis.viajes,'var(--rojo)')}
+      ${fbRow('Pend. Fac. Empleador',DATA.estados.pendEmpleador,DATA.kpis.viajes,'var(--amarillo)')}
+      ${fbRow('Pend. Fac. Proveedor',DATA.estados.pendProveedor,DATA.kpis.viajes,'var(--cian)')}
+      ${fbRow('Facturado TOTAL',DATA.estados.facturadoTotal,DATA.kpis.viajes,'var(--verde)')}
+    </div><p style="margin-top:16px;font-size:12px;color:var(--gris-suave)">Cada orden se factura dos veces (proveedor + empleador). "Facturado TOTAL" = ambos folios presentes.</p></div></div>
+  </div>`;
+}
+function miniDonut(pct){
+  const r=70,circ=2*Math.PI*r,off=circ*(1-pct/100);
+  return `<div class="fact-row"><div class="donut"><svg width="200" height="200" viewBox="0 0 200 200">
+    <circle cx="100" cy="100" r="${r}" fill="none" stroke="#EDF1F6" stroke-width="26"/>
+    <circle cx="100" cy="100" r="${r}" fill="none" stroke="var(--azul)" stroke-width="26" stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${off}"/>
+    </svg><div class="center"><div class="big">${pct}%</div><div class="lbl">facturado</div></div></div>
+    <div class="fact-breakdown">${fbRow('Facturados',DATA.kpis.facturado,DATA.kpis.viajes,'var(--azul)')}${fbRow('Por facturar',DATA.kpis.porFacturar,DATA.kpis.viajes,'var(--amarillo)')}</div></div>`;
+}
+function fbRow(name,val,total,color){const pct=Math.round(val/total*100);return `<div class="fb-row"><div class="fb-name">${name}</div><div class="fb-bar"><div class="fb-fill" style="width:${pct}%;background:${color}">${pct}%</div></div><div class="fb-val">${fmtNum(val)}</div></div>`;}
+
+/* ---------- ESTADO DE FACTURACIÓN (doble folio) ---------- */
+let filtroEstado='todos';
+function setFiltroEstado(e){filtroEstado=e;render();}
+function viewEstadoFact(){
+  const e=DATA.estados;
+  const total=e.pendTotal+e.pendEmpleador+e.pendProveedor+e.facturadoTotal;
+  const filas=DATA.ordenesEstado.filter(o=>filtroEstado==='todos'||o.estado===filtroEstado);
+  const rows=filas.map(o=>{
+    const est=ESTADOS_FACT[o.estado];
+    const fP=o.folioProv?`<b>${o.folioProv}</b>`:'<span style="color:var(--gris-suave)">—</span>';
+    const fE=o.folioEmpl?`<b>${o.folioEmpl}</b>`:'<span style="color:var(--gris-suave)">—</span>';
+    return `<tr><td>${o.fecha}</td><td>${o.order}</td><td>${o.cliente}</td><td>${o.empl}</td><td>${o.veh}</td>
+      <td>${fP}</td><td class="num">${fmtMoney(o.montoProv)}</td>
+      <td>${fE}</td><td class="num">${fmtMoney(o.montoEmpl)}</td>
+      <td><span class="pill ${est.pill}">${est.label}</span></td></tr>`;
+  }).join('');
+
+  // tarjetas clickeables de estado
+  const card=(key,cls)=>{const s=ESTADOS_FACT[key];const val=e[key];const active=filtroEstado===key?'style="outline:3px solid '+s.color+';outline-offset:-1px"':'';
+    return `<div class="kpi ${cls}" ${active} onclick="setFiltroEstado('${filtroEstado===key?'todos':key}')" style="cursor:pointer;${filtroEstado===key?'outline:3px solid '+s.color+';outline-offset:-1px':''}">
+      <div class="k-label">${s.label}</div><div class="k-val">${fmtNum(val)}</div><div class="k-sub">${s.desc}</div></div>`;};
+
+  return `<div class="info-banner">◱ <b>Modelo de doble facturación.</b> Cada orden se factura <b>dos veces</b>: una al proveedor/cliente y otra al empleador. Una orden está <b>Facturado TOTAL</b> solo cuando tiene <b>ambos folios</b>. Tocá una tarjeta para filtrar por estado.</div>
+  ${filterBar()}
+  <div class="kpi-grid">
+    ${card('pendTotal','rojo')}
+    ${card('pendEmpleador','amar')}
+    ${card('pendProveedor','cian')}
+    ${card('facturadoTotal','verde')}
+  </div>
+  <div class="panel"><div class="panel-head"><h3>Órdenes por estado de facturación</h3>
+    <span class="tag azul">${filtroEstado==='todos'?'Todos':ESTADOS_FACT[filtroEstado].label}</span>
+    ${filtroEstado!=='todos'?`<button class="mini-btn" style="padding:5px 11px;border:1px solid var(--gris-linea);border-radius:7px;background:#fff;cursor:pointer;font-size:12px;color:var(--azul)" onclick="setFiltroEstado('todos')">Quitar filtro</button>`:''}</div>
+    <div class="panel-body nopad"><div class="tbl-wrap"><table>
+      <thead><tr><th>Fecha</th><th>Order code</th><th>Cliente</th><th>Empleador</th><th>Vehículo</th>
+        <th>Folio proveedor</th><th class="num">Monto prov.</th><th>Folio empleador</th><th class="num">Monto empl.</th><th>Estado</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
+      <div class="tbl-foot"><span>Mostrando ${filas.length} de ${fmtNum(total)} órdenes</span>
+        <div class="pager"><button>‹</button><button>1</button><button>2</button><button>784</button><button>›</button></div></div>
+    </div></div>`;
+}
+
+/* ---------- PENDIENTES ---------- */
+function viewPendCliente(){
+  const rows=DATA.pendClienteRows.map(r=>`<tr><td>${r.fecha}</td><td>${r.plan}</td><td>${r.veh}</td><td>${r.cond}</td><td>${r.cliente}</td><td>${r.order}</td><td class="num">${fmtMoney(r.monto)}</td><td><span class="pill pend">Pendiente</span></td></tr>`).join('');
+  return filterBar()+`<div class="kpi-grid">
+    <div class="kpi amar"><div class="k-label">Viajes pendientes</div><div class="k-val">${fmtNum(DATA.pendClientes.viajes)}</div><div class="k-sub">Clientes / Proveedores</div></div>
+    <div class="kpi amar"><div class="k-label">Monto a facturar</div><div class="k-val">$ ${fmtMillones(DATA.pendClientes.monto)}</div><div class="k-sub">Estimado sobre tarifario</div></div>
+    <div class="kpi"><div class="k-label">Antigüedad promedio</div><div class="k-val">18 <small>días</small></div><div class="k-sub">Desde fecha de viaje</div></div>
+  </div><div class="panel"><div class="panel-head"><h3>Pendiente a facturar · Clientes</h3><span class="tag amar">${fmtNum(DATA.pendClientes.viajes)} viajes</span></div>
+    <div class="panel-body nopad"><div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Plan</th><th>Vehículo</th><th>Conductor</th><th>Cliente</th><th>Order code</th><th class="num">Monto</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${tblFoot(8,DATA.pendClientes.viajes,278)}</div></div>`;
+}
+function viewPendEmpleador(){
+  const rows=DATA.pendEmpleadorRows.map(r=>`<tr><td>${r.fecha}</td><td>${r.empl}</td><td>${r.veh}</td><td>${r.cond}</td><td>${r.concepto}</td><td>${r.order}</td><td class="num">${fmtMoney(r.monto)}</td><td><span class="pill crit">Pendiente</span></td></tr>`).join('');
+  return filterBar()+`<div class="kpi-grid">
+    <div class="kpi rojo"><div class="k-label">Viajes pendientes</div><div class="k-val">${fmtNum(DATA.pendEmpleadores.viajes)}</div><div class="k-sub">Empleadores</div></div>
+    <div class="kpi rojo"><div class="k-label">Monto a liquidar</div><div class="k-val">$ ${fmtMillones(DATA.pendEmpleadores.monto)}</div><div class="k-sub">Costo estimado</div></div>
+    <div class="kpi"><div class="k-label">Empleadores con pendiente</div><div class="k-val">14</div><div class="k-sub">Activos en el período</div></div>
+  </div><div class="panel"><div class="panel-head"><h3>Pendiente a facturar · Empleadores</h3><span class="tag rojo">${fmtNum(DATA.pendEmpleadores.viajes)} viajes</span></div>
+    <div class="panel-body nopad"><div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Empleador</th><th>Vehículo</th><th>Conductor</th><th>Concepto</th><th>Order code</th><th class="num">Monto</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${tblFoot(6,DATA.pendEmpleadores.viajes,247)}</div></div>`;
+}
+
+/* ---------- FACTURADO (3 vistas) ---------- */
+function viewFactTotal(){
+  const rows=[...DATA.factClienteRows.map(r=>({...r,ent:r.cliente,tipo:'Cliente'})),...DATA.factEmpleadorRows.map(r=>({...r,ent:r.empl,tipo:'Empleador'}))]
+    .sort((a,b)=>a.fecha.split('/').reverse().join('')>b.fecha.split('/').reverse().join('')?1:-1)
+    .map(r=>`<tr><td>${r.fecha}</td><td>${r.ent}</td><td><b>${r.folio}</b></td><td>${r.veh}</td><td>${r.cond}</td><td>${r.order}</td>
+      <td><span class="pill ${r.tipo==='Cliente'?'prov':'empl'}">${r.tipo}</span></td><td class="num">${fmtMoney(r.monto)}</td><td><span class="pill fact">Facturado</span></td></tr>`).join('');
+  return filterBar()+`<div class="kpi-grid">
+    <div class="kpi verde"><div class="k-label">Facturado total</div><div class="k-val">$ ${fmtMillones(DATA.facturadoTotal.monto)}</div><div class="k-sub up">${fmtNum(DATA.facturadoTotal.viajes)} viajes · ${DATA.pctFacturado}%</div></div>
+    <div class="kpi cian"><div class="k-label">Facturado a clientes</div><div class="k-val">$ ${fmtMillones(DATA.facturadoCliente.monto)}</div><div class="k-sub">${fmtNum(DATA.facturadoCliente.viajes)} viajes</div></div>
+    <div class="kpi viol"><div class="k-label">Facturado a empleadores</div><div class="k-val">$ ${fmtMillones(DATA.facturadoEmpleador.monto)}</div><div class="k-sub">${fmtNum(DATA.facturadoEmpleador.viajes)} viajes</div></div>
+  </div><div class="panel"><div class="panel-head"><h3>Facturado total · Clientes + Empleadores</h3><span class="tag verde">${fmtNum(DATA.facturadoTotal.viajes)} viajes</span></div>
+    <div class="panel-body nopad"><div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Entidad</th><th>Folio</th><th>Vehículo</th><th>Conductor</th><th>Order code</th><th>Tipo</th><th class="num">Monto</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${tblFoot(7,DATA.facturadoTotal.viajes,562)}</div></div>`;
+}
+function viewFactCliente(){
+  const rows=DATA.factClienteRows.map(r=>`<tr><td>${r.fecha}</td><td>${r.cliente}</td><td><b>${r.folio}</b></td><td>${r.veh}</td><td>${r.cond}</td><td>${r.order}</td><td class="num">${fmtMoney(r.monto)}</td><td><span class="pill fact">Facturado</span></td></tr>`).join('');
+  return filterBar()+`<div class="kpi-grid">
+    <div class="kpi cian"><div class="k-label">Viajes facturados</div><div class="k-val">${fmtNum(DATA.facturadoCliente.viajes)}</div><div class="k-sub">Solo clientes / proveedores</div></div>
+    <div class="kpi cian"><div class="k-label">Monto facturado</div><div class="k-val">$ ${fmtMillones(DATA.facturadoCliente.monto)}</div><div class="k-sub">Ingresos emitidos</div></div>
+    <div class="kpi"><div class="k-label">% facturación clientes</div><div class="k-val">74,2%</div><div class="k-sub up">Sobre total de clientes</div></div>
+  </div><div class="panel"><div class="panel-head"><h3>Facturado · Clientes / Proveedores</h3><span class="tag azul">${fmtNum(DATA.facturadoCliente.viajes)} viajes</span></div>
+    <div class="panel-body nopad"><div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Folio</th><th>Vehículo</th><th>Conductor</th><th>Order code</th><th class="num">Monto</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${tblFoot(4,DATA.facturadoCliente.viajes,301)}</div></div>`;
+}
+function viewFactEmpleador(){
+  const rows=DATA.factEmpleadorRows.map(r=>`<tr><td>${r.fecha}</td><td>${r.empl}</td><td><b>${r.folio}</b></td><td>${r.veh}</td><td>${r.cond}</td><td>${r.order}</td><td class="num">${fmtMoney(r.monto)}</td><td><span class="pill fact">Facturado</span></td></tr>`).join('');
+  return filterBar()+`<div class="kpi-grid">
+    <div class="kpi viol"><div class="k-label">Viajes facturados</div><div class="k-val">${fmtNum(DATA.facturadoEmpleador.viajes)}</div><div class="k-sub">Solo empleadores</div></div>
+    <div class="kpi viol"><div class="k-label">Monto liquidado</div><div class="k-val">$ ${fmtMillones(DATA.facturadoEmpleador.monto)}</div><div class="k-sub">Costos liquidados</div></div>
+    <div class="kpi"><div class="k-label">% facturación empleadores</div><div class="k-val">68,9%</div><div class="k-sub up">Sobre total de empleadores</div></div>
+  </div><div class="panel"><div class="panel-head"><h3>Facturado · Empleadores</h3><span class="tag viol">${fmtNum(DATA.facturadoEmpleador.viajes)} viajes</span></div>
+    <div class="panel-body nopad"><div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Empleador</th><th>Folio</th><th>Vehículo</th><th>Conductor</th><th>Order code</th><th class="num">Monto</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${tblFoot(3,DATA.facturadoEmpleador.viajes,261)}</div></div>`;
+}
+function tblFoot(shown,total,pages){return `<div class="tbl-foot"><span>Mostrando ${shown} de ${fmtNum(total)}</span><div class="pager"><button>‹</button><button>1</button><button>2</button><button>${pages}</button><button>›</button></div></div>`;}
+
+/* ---------- HISTÓRICO ---------- */
+function viewHistorico(){
+  const maxTotal=Math.max(...DATA.historico.map(m=>m.pend+m.fact)),scale=190/maxTotal;
+  const bars=DATA.historico.map(m=>{const hP=Math.round(m.pend*scale),hF=Math.round(m.fact*scale);
+    return `<div class="bar-col"><div class="bar-val">${fmtNum(m.pend+m.fact)}</div><div class="bar-stack"><div class="bar-seg fact" data-h="${hF}" style="height:0"></div><div class="bar-seg pend" data-h="${hP}" style="height:0"></div></div><div class="bar-label">${m.mes}</div></div>`;}).join('');
+  return filterBar()+`<div class="kpi-grid">
+    <div class="kpi amar"><div class="k-label">Pendiente promedio/mes</div><div class="k-val">458</div><div class="k-sub">Últimos 6 meses</div></div>
+    <div class="kpi verde"><div class="k-label">Facturado promedio/mes</div><div class="k-val">1.145</div><div class="k-sub up">Tendencia estable</div></div>
+    <div class="kpi"><div class="k-label">Mejor mes</div><div class="k-val">Dic</div><div class="k-sub">1.360 facturados</div></div>
+  </div><div class="panel"><div class="panel-head"><h3>Evolución mensual · Pendiente vs Facturado</h3><span class="tag amar">viajes</span></div>
+    <div class="panel-body"><div class="chart">${bars}</div><div class="legend"><span><i class="dot fact"></i> Facturado</span><span><i class="dot pend"></i> Pendiente</span></div></div></div>`;
+}
+
+/* ---------- PORCENTAJE ---------- */
+function viewPorcentaje(){
+  return filterBar()+`<div class="panel"><div class="panel-head"><h3>Porcentaje de facturación global</h3><span class="tag verde">En vivo</span></div><div class="panel-body">${miniDonut(DATA.pctFacturado)}</div></div>
+  <div class="split"><div class="panel"><div class="panel-head"><h3>% facturación · Clientes</h3></div><div class="panel-body">${miniDonut(74.2)}</div></div>
+    <div class="panel"><div class="panel-head"><h3>% facturación · Empleadores</h3></div><div class="panel-body">${miniDonut(68.9)}</div></div></div>`;
+}
+
+/* ---------- TARIFARIOS ---------- */
+function viewTarifIngresos(){
+  const ing=DATA.tarifarioIngresos.map(t=>`<tr><td><b>${t.tag}</b></td><td>${t.tipo}</td><td>${t.entidad}</td><td class="num">${fmtMoney(t.monto)}</td><td>${t.unidad}</td></tr>`).join('');
+  return `<div class="info-banner">🔒 <b>Sección restringida.</b> Esquema de ingresos (lo que se cobra a clientes/proveedores). Visible para tu perfil <b>${ROLES[currentRole].name}</b>.</div>
+  <div class="panel"><div class="panel-head"><h3>Esquema de ingresos</h3><span class="tag verde">Tarifario</span></div>
+    <div class="panel-body nopad"><div class="tbl-wrap"><table><thead><tr><th>Tag de costo</th><th>Tipo</th><th>Entidad (cliente/proveedor)</th><th class="num">Tarifa</th><th>Unidad</th></tr></thead><tbody>${ing}</tbody></table></div></div></div>`;
+}
+function viewTarifCostos(){
+  const cos=DATA.tarifarioCostos.map(t=>`<tr><td><b>${t.tag}</b></td><td>${t.tipo}</td><td>${t.entidad}</td><td class="num">${fmtMoney(t.monto)}</td><td>${t.unidad}</td></tr>`).join('');
+  return `<div class="info-banner">🔒 <b>Sección restringida.</b> Esquema de costos (lo que se paga a empleadores). Visible para tu perfil <b>${ROLES[currentRole].name}</b>.</div>
+  <div class="panel"><div class="panel-head"><h3>Esquema de costos</h3><span class="tag rojo">Tarifario</span></div>
+    <div class="panel-body nopad"><div class="tbl-wrap"><table><thead><tr><th>Tag de costo</th><th>Tipo</th><th>Entidad (empleador)</th><th class="num">Tarifa</th><th>Unidad</th></tr></thead><tbody>${cos}</tbody></table></div></div></div>`;
+}
+
+/* ===================== EXPORTADOR ===================== */
+let exportSel={};
+function openExport(){
+  if(Object.keys(exportSel).length===0){Object.values(COLS_BACK).flat().forEach(c=>exportSel[c]=true);}
+  renderExportCols();
+  document.getElementById('exportModal').classList.remove('hidden');
+}
+function closeExport(){document.getElementById('exportModal').classList.add('hidden');}
+function renderExportCols(){
+  const groups=Object.entries(COLS_BACK).map(([g,cols])=>{
+    const checks=cols.map(c=>`<label class="col-check"><input type="checkbox" ${exportSel[c]?'checked':''} onchange="exportSel['${c}']=this.checked;updateCount()"> ${c}</label>`).join('');
+    return `<div class="col-group"><h4>${g}</h4><div class="col-list">${checks}</div></div>`;
+  }).join('');
+  document.getElementById('colGroups').innerHTML=groups;
+  updateCount();
+}
+function updateCount(){
+  const total=Object.values(COLS_BACK).flat().length;
+  const sel=Object.values(exportSel).filter(Boolean).length;
+  document.getElementById('exportCount').textContent=`${sel} de ${total} columnas seleccionadas`;
+}
+function exportAll(val){Object.values(COLS_BACK).flat().forEach(c=>exportSel[c]=val);renderExportCols();}
+function exportPreset(){
+  const preset=['pod__planned_date','order__code','order__supplier_name','pod__employer_name','MontoPorViajeSupplier','MontoPorViajeEmployer','billing_supplier_folio','billing_supplier_status','billing_supplier_amount','billing_employer_folio','billing_employer_status','billing_employer_amount'];
+  Object.values(COLS_BACK).flat().forEach(c=>exportSel[c]=preset.includes(c));renderExportCols();
+}
+function doExport(){
+  const sel=Object.entries(exportSel).filter(([,v])=>v).map(([k])=>k);
+  const fmt=document.getElementById('exportFmt').value;
+  closeExport();
+  const v=VIEWS[currentView].label;
+  alert(`✅ Exportación simulada\n\nVista: ${v}\nFormato: ${fmt}\nColumnas: ${sel.length}\n\n(En el sistema real esto descarga el archivo con las filas filtradas y las columnas elegidas.)`);
+}
+</script>
+</body>
+</html>
