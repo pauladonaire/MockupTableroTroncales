@@ -186,6 +186,55 @@
   }
   .sidebar-backdrop{display:none}
   .sidebar-backdrop.show{display:block;position:fixed;inset:0;background:rgba(0,20,50,.5);z-index:35}
+
+  /* BUSCADOR GLOBAL POR N° DE ORDEN */
+  .order-search{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--gris-linea);border-radius:8px;padding:0 10px;min-width:260px}
+  .order-search:focus-within{border-color:var(--azul);box-shadow:0 0 0 3px rgba(0,81,155,.10)}
+  .order-search .ico{color:var(--gris-suave);font-size:15px}
+  .order-search input{border:none;outline:none;padding:9px 4px;font-size:13px;flex:1;color:var(--gris-txt);background:transparent;min-width:0}
+  .order-search button{border:none;background:none;color:var(--gris-suave);cursor:pointer;font-size:15px;padding:2px 4px}
+  .order-search button:hover{color:var(--rojo)}
+  .search-info{background:#FEF9E7;border:1px solid var(--amarillo);color:#8a6400;border-radius:8px;padding:8px 14px;font-size:12.5px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+  .search-info b{color:#6a4d00}
+  tbody tr.match-row td{background:#FFF7DE !important}
+  @media(max-width:560px){.order-search{min-width:0;flex:1}}
+
+  /* RECEPCIÓN DE REMITOS */
+  .rcpt-check{display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+  .rcpt-check input{width:17px;height:17px;accent-color:var(--verde);cursor:pointer}
+  .rcpt-check.disabled{opacity:.35;cursor:not-allowed}
+  .rcpt-check.disabled input{cursor:not-allowed}
+  .pill.rend-pend{background:#FBE9EA;color:#B02A34}
+  .pill.rend-traf{background:#FEF3E2;color:#B9740F}
+  .pill.rend-adm{background:#E8F7F0;color:#0F7A4F}
+  .rcpt-legend{display:flex;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--gris-suave);padding:14px 18px;border-top:1px solid var(--gris-linea)}
+  .rcpt-legend span{display:flex;align-items:center;gap:6px}
+
+  /* MINI-TARJETAS DE RENDICIÓN DE REMITOS */
+  .mini-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px}
+  .mini-kpi{background:var(--gris-panel);border-radius:10px;padding:12px 14px;box-shadow:var(--sombra);border-left:3px solid var(--azul);cursor:pointer;transition:transform .08s}
+  .mini-kpi:hover{transform:translateY(-1px)}
+  .mini-kpi.rojo{border-left-color:var(--rojo)} .mini-kpi.amar{border-left-color:var(--amarillo)} .mini-kpi.verde{border-left-color:var(--verde)} .mini-kpi.cian{border-left-color:var(--cian)}
+  .mini-kpi .m-label{font-size:10.5px;color:var(--gris-suave);font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+  .mini-kpi .m-val{font-size:20px;font-weight:800;color:var(--gris-txt);line-height:1.1;margin-top:4px}
+  .mini-kpi .m-val small{font-size:12px;font-weight:600;color:var(--gris-suave)}
+  .mini-kpi .m-sub{font-size:10.5px;color:var(--gris-suave);margin-top:3px}
+  .rcpt-perm{font-size:12px;color:var(--gris-suave);margin:-8px 0 18px}
+
+  /* HISTÓRICO DE FECHAS POR ORDEN (modal) */
+  .hist-link{color:var(--azul);cursor:pointer;text-decoration:underline;text-decoration-style:dotted;font-weight:600}
+  .hist-link:hover{color:var(--azul-osc)}
+  .timeline{list-style:none;padding:6px 0;margin:0}
+  .timeline li{position:relative;padding:0 0 20px 30px;border-left:2px solid var(--gris-linea)}
+  .timeline li:last-child{border-left-color:transparent;padding-bottom:4px}
+  .timeline li .tl-dot{position:absolute;left:-8px;top:2px;width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid var(--gris-linea)}
+  .timeline li.done .tl-dot{border-color:var(--verde);background:var(--verde)}
+  .timeline li.done{border-left-color:var(--verde)}
+  .timeline .tl-label{font-size:12px;font-weight:700;color:var(--gris-txt);text-transform:uppercase;letter-spacing:.4px}
+  .timeline .tl-date{font-size:14px;font-weight:700;color:var(--azul);margin-top:2px}
+  .timeline .tl-date.empty{color:var(--gris-suave);font-weight:600;font-style:italic}
+  .hist-head-order{font-size:12px;color:var(--gris-suave);margin-bottom:14px}
+  .hist-head-order b{color:var(--gris-txt);font-size:14px}
 </style>
 </head>
 <body>
@@ -256,6 +305,7 @@
         <button class="mini-btn" onclick="exportAll(true)">Seleccionar todas</button>
         <button class="mini-btn" onclick="exportAll(false)">Ninguna</button>
         <button class="mini-btn" onclick="exportPreset()">Preset facturación</button>
+        <button class="mini-btn" onclick="exportPresetAdminClientes()">Formato Admin Clientes</button>
         <span class="export-count" id="exportCount"></span>
       </div>
       <div class="col-groups" id="colGroups"></div>
@@ -263,6 +313,20 @@
     <div class="modal-foot">
       <button class="btn-ghost" onclick="closeExport()">Cancelar</button>
       <button class="btn-primary" onclick="doExport()">Exportar selección</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL HISTÓRICO DE FECHAS POR ORDEN -->
+<div class="modal-bg hidden" id="histModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-head">
+      <h3>📅 Histórico de la orden</h3>
+      <button class="modal-close" onclick="closeHist()">×</button>
+    </div>
+    <div class="modal-body" id="histBody"></div>
+    <div class="modal-foot">
+      <button class="btn-ghost" style="flex:1" onclick="closeHist()">Cerrar</button>
     </div>
   </div>
 </div>
@@ -329,24 +393,41 @@ const DATA = {
     facturadoTotal: 4856, // ambos folios
   },
   // Órdenes con su doble estado (proveedor + empleador)
+  // + fechas históricas (fCarga, fEntrega, fRecRemitos, fFolioEmpl, fFolioProv)
+  // + estado de rendición de remitos (rendicion: 'pend' | 'traf' | 'adm')
   ordenesEstado:[
     {fecha:'16/03/2026',order:'0572026MTAR116JP5357',cliente:'YPF CHILE',empl:'ANDESMAR CARGAS S.A.',veh:'HLZF33',cond:'TITO OROS',
-      folioProv:'',montoProv:214300,folioEmpl:'',montoEmpl:142000,estado:'pendTotal'},
+      folioProv:'',montoProv:214300,folioEmpl:'',montoEmpl:142000,estado:'pendTotal',
+      fCarga:'14/03/2026',fEntrega:'16/03/2026',fRecRemitos:'',fFolioEmpl:'',fFolioProv:'',rendicion:'pend'},
     {fecha:'17/03/2026',order:'AGLCH043/2026TRPWSX21',cliente:'CD MENDOZA',empl:'ANDESMAR CARGAS S.A.',veh:'HLZF34',cond:'ANGEL GARAY',
-      folioProv:'F-A-0013002',montoProv:305120,folioEmpl:'',montoEmpl:210300,estado:'pendEmpleador'},
+      folioProv:'F-A-0013002',montoProv:305120,folioEmpl:'',montoEmpl:210300,estado:'pendEmpleador',
+      fCarga:'15/03/2026',fEntrega:'17/03/2026',fRecRemitos:'19/03/2026',fFolioEmpl:'',fFolioProv:'24/03/2026',rendicion:'traf'},
     {fecha:'23/03/2026',order:'260320162226-57-PPF',cliente:'RHEEM SAN LUIS',empl:'TRANSPORTES MERCOTRUCK',veh:'245-NBC016',cond:'NESTOR F. GUERRA',
-      folioProv:'',montoProv:421000,folioEmpl:'F-B-0004702',montoEmpl:298000,estado:'pendProveedor'},
+      folioProv:'',montoProv:421000,folioEmpl:'F-B-0004702',montoEmpl:298000,estado:'pendProveedor',
+      fCarga:'20/03/2026',fEntrega:'23/03/2026',fRecRemitos:'25/03/2026',fFolioEmpl:'28/03/2026',fFolioProv:'',rendicion:'traf'},
     {fecha:'14/03/2026',order:'ADC-9902',cliente:'ANDESMAR CARGAS S.A',empl:'AUTOTRANSPORTES ANDESMAR',veh:'HKRD90',cond:'JOSE HERRERA',
-      folioProv:'F-A-0013188',montoProv:412300,folioEmpl:'F-B-0004610',montoEmpl:118400,estado:'facturadoTotal'},
+      folioProv:'F-A-0013188',montoProv:412300,folioEmpl:'F-B-0004610',montoEmpl:118400,estado:'facturadoTotal',
+      fCarga:'12/03/2026',fEntrega:'14/03/2026',fRecRemitos:'16/03/2026',fFolioEmpl:'20/03/2026',fFolioProv:'22/03/2026',rendicion:'adm',fRendAdm:'24/03/2026'},
     {fecha:'26/03/2026',order:'260323125216-2-PVV',cliente:'CND MENDOZA',empl:'ANDESMAR CARGAS S.A.',veh:'309-AG994HA',cond:'MATIAS SILVA',
-      folioProv:'',montoProv:512300,folioEmpl:'',montoEmpl:356200,estado:'pendTotal'},
+      folioProv:'',montoProv:512300,folioEmpl:'',montoEmpl:356200,estado:'pendTotal',
+      fCarga:'24/03/2026',fEntrega:'26/03/2026',fRecRemitos:'',fFolioEmpl:'',fFolioProv:'',rendicion:'pend'},
     {fecha:'02/03/2026',order:'TP2026-0912',cliente:'TECH PACK SRL',empl:'ANDESMAR CARGAS S.A.',veh:'HLZF20',cond:'LUIS PEREZ',
-      folioProv:'F-A-0012843',montoProv:867400,folioEmpl:'F-B-0004521',montoEmpl:512700,estado:'facturadoTotal'},
+      folioProv:'F-A-0012843',montoProv:867400,folioEmpl:'F-B-0004521',montoEmpl:512700,estado:'facturadoTotal',
+      fCarga:'28/02/2026',fEntrega:'02/03/2026',fRecRemitos:'04/03/2026',fFolioEmpl:'08/03/2026',fFolioProv:'10/03/2026',rendicion:'adm',fRendAdm:'09/03/2026'},
     {fecha:'27/03/2026',order:'AC02926PWSX18',cliente:'YPF CHILE',empl:'AUTOTRANSPORTES ANDESMAR',veh:'HKRD90',cond:'JOSE HERRERA',
-      folioProv:'F-A-0012901',montoProv:167800,folioEmpl:'',montoEmpl:118400,estado:'pendEmpleador'},
+      folioProv:'F-A-0012901',montoProv:167800,folioEmpl:'',montoEmpl:118400,estado:'pendEmpleador',
+      fCarga:'25/03/2026',fEntrega:'27/03/2026',fRecRemitos:'29/03/2026',fFolioEmpl:'',fFolioProv:'01/04/2026',rendicion:'traf'},
     {fecha:'31/03/2026',order:'260331172141-PPF',cliente:'CND MENDOZA',empl:'ANDESMAR CARGAS S.A.',veh:'299-AG188VN',cond:'JORGE VALEN…',
-      folioProv:'',montoProv:388600,folioEmpl:'F-B-0004610',montoEmpl:271900,estado:'pendProveedor'},
+      folioProv:'',montoProv:388600,folioEmpl:'F-B-0004610',montoEmpl:271900,estado:'pendProveedor',
+      fCarga:'29/03/2026',fEntrega:'31/03/2026',fRecRemitos:'02/04/2026',fFolioEmpl:'05/04/2026',fFolioProv:'',rendicion:'pend'},
   ],
+};
+
+// Metadatos de los 3 estados de rendición de remitos
+const ESTADOS_RENDICION = {
+  pend:{label:'Pendiente',        pill:'rend-pend', desc:'El chofer aún no rindió los remitos'},
+  traf:{label:'Rendido a Tráfico',pill:'rend-traf', desc:'El chofer rindió los remitos a Tráfico'},
+  adm: {label:'Rendido a Admin',  pill:'rend-adm',  desc:'Tráfico rindió los remitos a Admin Clientes'},
 };
 
 // Metadatos de los 4 estados de facturación
@@ -359,13 +440,28 @@ const ESTADOS_FACT = {
 
 /* ===================== COLUMNAS DEL BACK (para exportador) ===================== */
 const COLS_BACK = {
-  'Orden / viaje':['pod__planned_date','pod__description','pod__route_code','pod__vehicle_code','pod__driver_name','pod__driver_dni','order__code','order__alt_code','order__status','order__otif'],
-  'Cliente / proveedor':['order__supplier_name','order__client_name','order__order_type_name','pod__address_name','pod__address_county','pod__address_state'],
+  'Orden / viaje':['pod__planned_date','pod__description','pod__route_code','pod__vehicle_code','pod__driver_name','pod__driver_dni','order__code','order__alt_code','order__status','order__otif','order__custom_7','order__custom_9'],
+  'Cliente / proveedor':['order__supplier_name','order__client_name','order__client_label','order__order_type_name','pod__address_name','pod__address_county','pod__address_state'],
   'Empleador':['pod__employer_code','pod__employer_name','pod__driver_email'],
   'Distancia / km':['pod__distance','DistanciaDrivinSupplier','DistanciaDrivinEmployer','pod__odometer_start','pod__odometer_end'],
-  'Costos / montos':['MontoPorViajeSupplier','MontoPorViajeEmployer','order__custom_6','order__units_1'],
+  'Costos / montos':['MontoPorViajeSupplier','MontoPorViajeEmployer','order__custom_6','order__units_1','order__units_3','order__cost'],
   'Facturación':['billing_supplier_folio','billing_supplier_status','billing_supplier_amount','billing_employer_folio','billing_employer_status','billing_employer_amount'],
 };
+
+/* Formato solicitado por Admin Clientes: mapeo columna visible → campo del back.
+   Fecha=planned_date · Origen y Destino=custom_9 · Concepto=custom_6 · Tractor=etiqueta cliente
+   · Arrastre=código vehículo · Conductor=custom_7 · N° de remito=código alternativo · Valor declarado=unit_3 · Tarifa=costo */
+const FORMATO_ADMIN_CLIENTES = [
+  {col:'Fecha',            campo:'pod__planned_date'},
+  {col:'Origen y Destino', campo:'order__custom_9'},
+  {col:'Concepto',         campo:'order__custom_6'},
+  {col:'Tractor',          campo:'order__client_label'},   // etiqueta cliente
+  {col:'Arrastre',         campo:'pod__vehicle_code'},      // código vehículo
+  {col:'Conductor',        campo:'order__custom_7'},
+  {col:'N° de remito',     campo:'order__alt_code'},        // código alternativo
+  {col:'Valor declarado',  campo:'order__units_3'},         // unit 3
+  {col:'Tarifa',           campo:'order__cost'},            // costo
+];
 
 /* ===================== ROLES ===================== */
 const ROLES = {
@@ -407,6 +503,7 @@ const VIEWS = {
 const GRUPOS=['Facturación','Control de gestión','Tarifarios'];
 
 let currentRole='admin_clientes', currentView='resumen';
+let orderSearch='';   // término de búsqueda por N° de orden (global, todas las pantallas)
 
 /* ===================== HELPERS ===================== */
 const fmtMoney=n=>'$ '+n.toLocaleString('es-AR',{maximumFractionDigits:0});
@@ -449,10 +546,26 @@ function navItem(v,allowed){
 function go(v){currentView=v;buildNav();render();if(window.innerWidth<=1000)toggleSidebar();}
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('backdrop').classList.toggle('show');}
 
+/* ===================== BÚSQUEDA POR N° DE ORDEN (global) ===================== */
+function setOrderSearch(v){orderSearch=v;render();}
+function clearOrderSearch(){orderSearch='';render();}
+// ¿la fila matchea el término de búsqueda? (por N° de orden, case-insensitive, coincidencia parcial)
+function matchOrder(orderCode){
+  if(!orderSearch.trim()) return true;
+  return (orderCode||'').toLowerCase().includes(orderSearch.trim().toLowerCase());
+}
+// banner que informa el filtro activo por orden
+function searchInfo(shown){
+  if(!orderSearch.trim()) return '';
+  return `<div class="search-info">🔎 Filtrando por N° de orden <b>"${orderSearch.trim()}"</b> · ${shown} resultado(s). <span class="hist-link" onclick="clearOrderSearch()">Quitar búsqueda</span></div>`;
+}
+
 /* ===================== FILTROS por rol ===================== */
 function filterBar(){
   const f=ROLES[currentRole].filtros;
   const parts=[];
+  // Buscador global por N° de orden — disponible en TODAS las pantallas
+  parts.push(`<div class="filter"><label>N° de orden</label><div class="order-search"><span class="ico">🔎</span><input type="text" placeholder="Buscar orden…" value="${orderSearch.replace(/"/g,'&quot;')}" oninput="setOrderSearch(this.value)" onkeydown="if(event.key==='Enter')setOrderSearch(this.value)">${orderSearch?`<button title="Limpiar" onclick="clearOrderSearch()">×</button>`:''}</div></div>`);
   if(f.includes('periodo')) parts.push(`<div class="filter"><label>Período</label><select><option>Últimos 6 meses</option><option>Este mes</option><option>Trimestre actual</option><option>Año 2026</option><option>Personalizado…</option></select></div>`);
   if(f.includes('fecha')) parts.push(`<div class="filter"><label>Desde</label><input type="date" value="2026-01-01"></div><div class="filter"><label>Hasta</label><input type="date" value="2026-03-31"></div>`);
   if(f.includes('cliente')) parts.push(`<div class="filter"><label>Cliente</label><select><option>Todos</option><option>TECH PACK SRL</option><option>EXPRESS LINEAS</option><option>NESTLE ARGENTINA</option><option>YPF CHILE</option></select></div>`);
@@ -477,6 +590,11 @@ function render(){
     tarifIngresos:viewTarifIngresos,tarifCostos:viewTarifCostos,
   })[currentView]();
   requestAnimationFrame(()=>document.querySelectorAll('.bar-seg[data-h]').forEach(e=>e.style.height=e.dataset.h+'px'));
+  // Reponer foco en el buscador de orden si estaba activo (el render reescribe el DOM)
+  if(orderSearch!==''){
+    const inp=document.querySelector('.order-search input');
+    if(inp){inp.focus();const p=inp.value.length;try{inp.setSelectionRange(p,p);}catch(e){}}
+  }
 }
 function noAccess(){return `<div class="locked-banner"><div class="lock-ico">🔒</div><h3>No tenés acceso a esta sección</h3><p>Tu perfil actual (<b>${ROLES[currentRole].name}</b>) no incluye permisos para ver este contenido.</p></div>`;}
 
@@ -518,99 +636,178 @@ function setFiltroEstado(e){filtroEstado=e;render();}
 function viewEstadoFact(){
   const e=DATA.estados;
   const total=e.pendTotal+e.pendEmpleador+e.pendProveedor+e.facturadoTotal;
-  const filas=DATA.ordenesEstado.filter(o=>filtroEstado==='todos'||o.estado===filtroEstado);
+  const filas=DATA.ordenesEstado.filter(o=>(filtroEstado==='todos'||o.estado===filtroEstado)&&matchOrder(o.order));
+  // permisos de tildado de remitos
+  const pTraf=puedeTildarTraf(), pAdm=puedeTildarAdm();
   const rows=filas.map(o=>{
     const est=ESTADOS_FACT[o.estado];
+    const rend=ESTADOS_RENDICION[o.rendicion];
     const fP=o.folioProv?`<b>${o.folioProv}</b>`:'<span style="color:var(--gris-suave)">—</span>';
     const fE=o.folioEmpl?`<b>${o.folioEmpl}</b>`:'<span style="color:var(--gris-suave)">—</span>';
-    return `<tr><td>${o.fecha}</td><td>${o.order}</td><td>${o.cliente}</td><td>${o.empl}</td><td>${o.veh}</td>
+    const chkTraf=o.rendicion!=='pend';   // chofer rindió a Tráfico
+    const chkAdm =o.rendicion==='adm';     // Tráfico rindió a Admin
+    return `<tr class="${orderSearch&&matchOrder(o.order)?'match-row':''}"><td>${o.fecha}</td><td>${o.order}</td><td>${o.cliente}</td><td>${o.empl}</td><td>${o.veh}</td>
       <td>${fP}</td><td class="num">${fmtMoney(o.montoProv)}</td>
       <td>${fE}</td><td class="num">${fmtMoney(o.montoEmpl)}</td>
+      <td style="text-align:center">${rcptCheck(o,'traf',chkTraf,pTraf)}</td>
+      <td style="text-align:center">${rcptCheck(o,'adm',chkAdm,pAdm&&o.rendicion!=='pend')}</td>
+      <td><span class="pill ${rend.pill}">${rend.label}</span></td>
+      <td>${histCell(o.order)}</td>
       <td><span class="pill ${est.pill}">${est.label}</span></td></tr>`;
   }).join('');
 
-  // tarjetas clickeables de estado
+  // tarjetas clickeables de estado (facturación)
   const card=(key,cls)=>{const s=ESTADOS_FACT[key];const val=e[key];const active=filtroEstado===key?'style="outline:3px solid '+s.color+';outline-offset:-1px"':'';
     return `<div class="kpi ${cls}" ${active} onclick="setFiltroEstado('${filtroEstado===key?'todos':key}')" style="cursor:pointer;${filtroEstado===key?'outline:3px solid '+s.color+';outline-offset:-1px':''}">
       <div class="k-label">${s.label}</div><div class="k-val">${fmtNum(val)}</div><div class="k-sub">${s.desc}</div></div>`;};
 
+  // mini-tarjetas de rendición de remitos + tiempo promedio
+  const cntR={pend:0,traf:0,adm:0}; DATA.ordenesEstado.forEach(o=>cntR[o.rendicion]++);
+  const tprom=tiempoPromedioRemito();
+  const tpromCard=`<div class="mini-kpi cian"><div class="m-label">⏱️ Tiempo prom. remito</div><div class="m-val">${tprom==null?'—':tprom.toFixed(1)+' <small>días</small>'}</div><div class="m-sub">POD entrega → rendido a Admin</div></div>`;
+
+  const permMsg = pTraf&&pAdm
+      ? 'Tu perfil confirma <b>ambos</b> tildes de remitos (chofer→Tráfico y Tráfico→Admin).'
+      : pTraf ? 'Tu perfil (<b>Admin Tráfico</b>) confirma el tilde <b>chofer → Tráfico</b>. El de Tráfico→Admin lo hace Admin Clientes.'
+      : pAdm  ? 'Tu perfil (<b>Admin Clientes</b>) confirma el tilde <b>Tráfico → Admin</b>. El de chofer→Tráfico lo hace Admin Tráfico.'
+      : 'Tu perfil solo puede <b>consultar</b> el estado de rendición de remitos.';
+
   return `<div class="info-banner">◱ <b>Modelo de doble facturación.</b> Cada orden se factura <b>dos veces</b>: una al proveedor/cliente y otra al empleador. Una orden está <b>Facturado TOTAL</b> solo cuando tiene <b>ambos folios</b>. Tocá una tarjeta para filtrar por estado.</div>
   ${filterBar()}
+  ${searchInfo(filas.length)}
   <div class="kpi-grid">
     ${card('pendTotal','rojo')}
     ${card('pendEmpleador','amar')}
     ${card('pendProveedor','cian')}
     ${card('facturadoTotal','verde')}
   </div>
+  <div class="rcpt-perm">📥 <b>Recepción de remitos.</b> El estado de cada orden avanza <b>Pendiente → Rendido a Tráfico → Rendido a Admin</b>. ${permMsg}</div>
+  <div class="mini-grid">
+    <div class="mini-kpi rojo"><div class="m-label">Rem. Pendiente</div><div class="m-val">${fmtNum(cntR.pend)}</div><div class="m-sub">chofer no rindió</div></div>
+    <div class="mini-kpi amar"><div class="m-label">Rendido a Tráfico</div><div class="m-val">${fmtNum(cntR.traf)}</div><div class="m-sub">chofer → Tráfico</div></div>
+    <div class="mini-kpi verde"><div class="m-label">Rendido a Admin</div><div class="m-val">${fmtNum(cntR.adm)}</div><div class="m-sub">Tráfico → Admin</div></div>
+    ${tpromCard}
+  </div>
   <div class="panel"><div class="panel-head"><h3>Órdenes por estado de facturación</h3>
     <span class="tag azul">${filtroEstado==='todos'?'Todos':ESTADOS_FACT[filtroEstado].label}</span>
     ${filtroEstado!=='todos'?`<button class="mini-btn" style="padding:5px 11px;border:1px solid var(--gris-linea);border-radius:7px;background:#fff;cursor:pointer;font-size:12px;color:var(--azul)" onclick="setFiltroEstado('todos')">Quitar filtro</button>`:''}</div>
     <div class="panel-body nopad"><div class="tbl-wrap"><table>
       <thead><tr><th>Fecha</th><th>Order code</th><th>Cliente</th><th>Empleador</th><th>Vehículo</th>
-        <th>Folio proveedor</th><th class="num">Monto prov.</th><th>Folio empleador</th><th class="num">Monto empl.</th><th>Estado</th></tr></thead>
+        <th>Folio proveedor</th><th class="num">Monto prov.</th><th>Folio empleador</th><th class="num">Monto empl.</th>
+        <th style="text-align:center">Chofer → Tráfico</th><th style="text-align:center">Tráfico → Admin</th><th>Remitos</th>
+        <th>Histórico</th><th>Estado</th></tr></thead>
       <tbody>${rows}</tbody></table></div>
-      <div class="tbl-foot"><span>Mostrando ${filas.length} de ${fmtNum(total)} órdenes</span>
-        <div class="pager"><button>‹</button><button>1</button><button>2</button><button>784</button><button>›</button></div></div>
+      <div class="rcpt-legend">
+        <span><span class="pill rend-pend">Pendiente</span> El chofer aún no rindió</span>
+        <span><span class="pill rend-traf">Rendido a Tráfico</span> Chofer rindió a Tráfico</span>
+        <span><span class="pill rend-adm">Rendido a Admin</span> Tráfico rindió a Admin Clientes</span>
+      </div>
+      <div class="tbl-foot"><span>Mostrando ${filas.length}${orderSearch?'':' de '+fmtNum(total)} órdenes</span>
+        ${orderSearch?'':`<div class="pager"><button>‹</button><button>1</button><button>2</button><button>784</button><button>›</button></div>`}</div>
     </div></div>`;
 }
 
 /* ---------- PENDIENTES ---------- */
 function viewPendCliente(){
-  const rows=DATA.pendClienteRows.map(r=>`<tr><td>${r.fecha}</td><td>${r.plan}</td><td>${r.veh}</td><td>${r.cond}</td><td>${r.cliente}</td><td>${r.order}</td><td class="num">${fmtMoney(r.monto)}</td><td><span class="pill pend">Pendiente</span></td></tr>`).join('');
-  return filterBar()+`<div class="kpi-grid">
+  const filas=DATA.pendClienteRows.filter(r=>matchOrder(r.order));
+  const rows=filas.map(r=>`<tr class="${orderSearch&&matchOrder(r.order)?'match-row':''}"><td>${r.fecha}</td><td>${r.plan}</td><td>${r.veh}</td><td>${r.cond}</td><td>${r.cliente}</td><td>${r.order}</td><td class="num">${fmtMoney(r.monto)}</td><td>${histCell(r.order)}</td><td><span class="pill pend">Pendiente</span></td></tr>`).join('');
+  return filterBar()+searchInfo(filas.length)+`<div class="kpi-grid">
     <div class="kpi amar"><div class="k-label">Viajes pendientes</div><div class="k-val">${fmtNum(DATA.pendClientes.viajes)}</div><div class="k-sub">Clientes / Proveedores</div></div>
     <div class="kpi amar"><div class="k-label">Monto a facturar</div><div class="k-val">$ ${fmtMillones(DATA.pendClientes.monto)}</div><div class="k-sub">Estimado sobre tarifario</div></div>
     <div class="kpi"><div class="k-label">Antigüedad promedio</div><div class="k-val">18 <small>días</small></div><div class="k-sub">Desde fecha de viaje</div></div>
   </div><div class="panel"><div class="panel-head"><h3>Pendiente a facturar · Clientes</h3><span class="tag amar">${fmtNum(DATA.pendClientes.viajes)} viajes</span></div>
-    <div class="panel-body nopad"><div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Plan</th><th>Vehículo</th><th>Conductor</th><th>Cliente</th><th>Order code</th><th class="num">Monto</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table></div>
-    ${tblFoot(8,DATA.pendClientes.viajes,278)}</div></div>`;
+    <div class="panel-body nopad"><div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Plan</th><th>Vehículo</th><th>Conductor</th><th>Cliente</th><th>Order code</th><th class="num">Monto</th><th>Histórico</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${orderSearch?'':tblFoot(8,DATA.pendClientes.viajes,278)}</div></div>`;
 }
 function viewPendEmpleador(){
-  const rows=DATA.pendEmpleadorRows.map(r=>`<tr><td>${r.fecha}</td><td>${r.empl}</td><td>${r.veh}</td><td>${r.cond}</td><td>${r.concepto}</td><td>${r.order}</td><td class="num">${fmtMoney(r.monto)}</td><td><span class="pill crit">Pendiente</span></td></tr>`).join('');
-  return filterBar()+`<div class="kpi-grid">
+  const filas=DATA.pendEmpleadorRows.filter(r=>matchOrder(r.order));
+  const rows=filas.map(r=>`<tr class="${orderSearch&&matchOrder(r.order)?'match-row':''}"><td>${r.fecha}</td><td>${r.empl}</td><td>${r.veh}</td><td>${r.cond}</td><td>${r.concepto}</td><td>${r.order}</td><td class="num">${fmtMoney(r.monto)}</td><td>${histCell(r.order)}</td><td><span class="pill crit">Pendiente</span></td></tr>`).join('');
+  return filterBar()+searchInfo(filas.length)+`<div class="kpi-grid">
     <div class="kpi rojo"><div class="k-label">Viajes pendientes</div><div class="k-val">${fmtNum(DATA.pendEmpleadores.viajes)}</div><div class="k-sub">Empleadores</div></div>
     <div class="kpi rojo"><div class="k-label">Monto a liquidar</div><div class="k-val">$ ${fmtMillones(DATA.pendEmpleadores.monto)}</div><div class="k-sub">Costo estimado</div></div>
     <div class="kpi"><div class="k-label">Empleadores con pendiente</div><div class="k-val">14</div><div class="k-sub">Activos en el período</div></div>
   </div><div class="panel"><div class="panel-head"><h3>Pendiente a facturar · Empleadores</h3><span class="tag rojo">${fmtNum(DATA.pendEmpleadores.viajes)} viajes</span></div>
-    <div class="panel-body nopad"><div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Empleador</th><th>Vehículo</th><th>Conductor</th><th>Concepto</th><th>Order code</th><th class="num">Monto</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table></div>
-    ${tblFoot(6,DATA.pendEmpleadores.viajes,247)}</div></div>`;
+    <div class="panel-body nopad"><div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Empleador</th><th>Vehículo</th><th>Conductor</th><th>Concepto</th><th>Order code</th><th class="num">Monto</th><th>Histórico</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${orderSearch?'':tblFoot(6,DATA.pendEmpleadores.viajes,247)}</div></div>`;
 }
 
 /* ---------- FACTURADO (3 vistas) ---------- */
 function viewFactTotal(){
-  const rows=[...DATA.factClienteRows.map(r=>({...r,ent:r.cliente,tipo:'Cliente'})),...DATA.factEmpleadorRows.map(r=>({...r,ent:r.empl,tipo:'Empleador'}))]
-    .sort((a,b)=>a.fecha.split('/').reverse().join('')>b.fecha.split('/').reverse().join('')?1:-1)
-    .map(r=>`<tr><td>${r.fecha}</td><td>${r.ent}</td><td><b>${r.folio}</b></td><td>${r.veh}</td><td>${r.cond}</td><td>${r.order}</td>
-      <td><span class="pill ${r.tipo==='Cliente'?'prov':'empl'}">${r.tipo}</span></td><td class="num">${fmtMoney(r.monto)}</td><td><span class="pill fact">Facturado</span></td></tr>`).join('');
-  return filterBar()+`<div class="kpi-grid">
+  const filas=[...DATA.factClienteRows.map(r=>({...r,ent:r.cliente,tipo:'Cliente'})),...DATA.factEmpleadorRows.map(r=>({...r,ent:r.empl,tipo:'Empleador'}))]
+    .filter(r=>matchOrder(r.order))
+    .sort((a,b)=>a.fecha.split('/').reverse().join('')>b.fecha.split('/').reverse().join('')?1:-1);
+  const rows=filas.map(r=>`<tr class="${orderSearch&&matchOrder(r.order)?'match-row':''}"><td>${r.fecha}</td><td>${r.ent}</td><td><b>${r.folio}</b></td><td>${r.veh}</td><td>${r.cond}</td><td>${r.order}</td>
+      <td><span class="pill ${r.tipo==='Cliente'?'prov':'empl'}">${r.tipo}</span></td><td class="num">${fmtMoney(r.monto)}</td><td>${histCell(r.order)}</td><td><span class="pill fact">Facturado</span></td></tr>`).join('');
+  return filterBar()+searchInfo(filas.length)+`<div class="kpi-grid">
     <div class="kpi verde"><div class="k-label">Facturado total</div><div class="k-val">$ ${fmtMillones(DATA.facturadoTotal.monto)}</div><div class="k-sub up">${fmtNum(DATA.facturadoTotal.viajes)} viajes · ${DATA.pctFacturado}%</div></div>
     <div class="kpi cian"><div class="k-label">Facturado a clientes</div><div class="k-val">$ ${fmtMillones(DATA.facturadoCliente.monto)}</div><div class="k-sub">${fmtNum(DATA.facturadoCliente.viajes)} viajes</div></div>
     <div class="kpi viol"><div class="k-label">Facturado a empleadores</div><div class="k-val">$ ${fmtMillones(DATA.facturadoEmpleador.monto)}</div><div class="k-sub">${fmtNum(DATA.facturadoEmpleador.viajes)} viajes</div></div>
   </div><div class="panel"><div class="panel-head"><h3>Facturado total · Clientes + Empleadores</h3><span class="tag verde">${fmtNum(DATA.facturadoTotal.viajes)} viajes</span></div>
-    <div class="panel-body nopad"><div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Entidad</th><th>Folio</th><th>Vehículo</th><th>Conductor</th><th>Order code</th><th>Tipo</th><th class="num">Monto</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table></div>
-    ${tblFoot(7,DATA.facturadoTotal.viajes,562)}</div></div>`;
+    <div class="panel-body nopad"><div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Entidad</th><th>Folio</th><th>Vehículo</th><th>Conductor</th><th>Order code</th><th>Tipo</th><th class="num">Monto</th><th>Histórico</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${orderSearch?'':tblFoot(7,DATA.facturadoTotal.viajes,562)}</div></div>`;
 }
 function viewFactCliente(){
-  const rows=DATA.factClienteRows.map(r=>`<tr><td>${r.fecha}</td><td>${r.cliente}</td><td><b>${r.folio}</b></td><td>${r.veh}</td><td>${r.cond}</td><td>${r.order}</td><td class="num">${fmtMoney(r.monto)}</td><td><span class="pill fact">Facturado</span></td></tr>`).join('');
-  return filterBar()+`<div class="kpi-grid">
+  const filas=DATA.factClienteRows.filter(r=>matchOrder(r.order));
+  const rows=filas.map(r=>`<tr class="${orderSearch&&matchOrder(r.order)?'match-row':''}"><td>${r.fecha}</td><td>${r.cliente}</td><td><b>${r.folio}</b></td><td>${r.veh}</td><td>${r.cond}</td><td>${r.order}</td><td class="num">${fmtMoney(r.monto)}</td><td>${histCell(r.order)}</td><td><span class="pill fact">Facturado</span></td></tr>`).join('');
+  return filterBar()+searchInfo(filas.length)+`<div class="kpi-grid">
     <div class="kpi cian"><div class="k-label">Viajes facturados</div><div class="k-val">${fmtNum(DATA.facturadoCliente.viajes)}</div><div class="k-sub">Solo clientes / proveedores</div></div>
     <div class="kpi cian"><div class="k-label">Monto facturado</div><div class="k-val">$ ${fmtMillones(DATA.facturadoCliente.monto)}</div><div class="k-sub">Ingresos emitidos</div></div>
     <div class="kpi"><div class="k-label">% facturación clientes</div><div class="k-val">74,2%</div><div class="k-sub up">Sobre total de clientes</div></div>
   </div><div class="panel"><div class="panel-head"><h3>Facturado · Clientes / Proveedores</h3><span class="tag azul">${fmtNum(DATA.facturadoCliente.viajes)} viajes</span></div>
-    <div class="panel-body nopad"><div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Folio</th><th>Vehículo</th><th>Conductor</th><th>Order code</th><th class="num">Monto</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table></div>
-    ${tblFoot(4,DATA.facturadoCliente.viajes,301)}</div></div>`;
+    <div class="panel-body nopad"><div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Folio</th><th>Vehículo</th><th>Conductor</th><th>Order code</th><th class="num">Monto</th><th>Histórico</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${orderSearch?'':tblFoot(4,DATA.facturadoCliente.viajes,301)}</div></div>`;
 }
 function viewFactEmpleador(){
-  const rows=DATA.factEmpleadorRows.map(r=>`<tr><td>${r.fecha}</td><td>${r.empl}</td><td><b>${r.folio}</b></td><td>${r.veh}</td><td>${r.cond}</td><td>${r.order}</td><td class="num">${fmtMoney(r.monto)}</td><td><span class="pill fact">Facturado</span></td></tr>`).join('');
-  return filterBar()+`<div class="kpi-grid">
+  const filas=DATA.factEmpleadorRows.filter(r=>matchOrder(r.order));
+  const rows=filas.map(r=>`<tr class="${orderSearch&&matchOrder(r.order)?'match-row':''}"><td>${r.fecha}</td><td>${r.empl}</td><td><b>${r.folio}</b></td><td>${r.veh}</td><td>${r.cond}</td><td>${r.order}</td><td class="num">${fmtMoney(r.monto)}</td><td>${histCell(r.order)}</td><td><span class="pill fact">Facturado</span></td></tr>`).join('');
+  return filterBar()+searchInfo(filas.length)+`<div class="kpi-grid">
     <div class="kpi viol"><div class="k-label">Viajes facturados</div><div class="k-val">${fmtNum(DATA.facturadoEmpleador.viajes)}</div><div class="k-sub">Solo empleadores</div></div>
     <div class="kpi viol"><div class="k-label">Monto liquidado</div><div class="k-val">$ ${fmtMillones(DATA.facturadoEmpleador.monto)}</div><div class="k-sub">Costos liquidados</div></div>
     <div class="kpi"><div class="k-label">% facturación empleadores</div><div class="k-val">68,9%</div><div class="k-sub up">Sobre total de empleadores</div></div>
   </div><div class="panel"><div class="panel-head"><h3>Facturado · Empleadores</h3><span class="tag viol">${fmtNum(DATA.facturadoEmpleador.viajes)} viajes</span></div>
-    <div class="panel-body nopad"><div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Empleador</th><th>Folio</th><th>Vehículo</th><th>Conductor</th><th>Order code</th><th class="num">Monto</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table></div>
-    ${tblFoot(3,DATA.facturadoEmpleador.viajes,261)}</div></div>`;
+    <div class="panel-body nopad"><div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Empleador</th><th>Folio</th><th>Vehículo</th><th>Conductor</th><th>Order code</th><th class="num">Monto</th><th>Histórico</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${orderSearch?'':tblFoot(3,DATA.facturadoEmpleador.viajes,261)}</div></div>`;
 }
 function tblFoot(shown,total,pages){return `<div class="tbl-foot"><span>Mostrando ${shown} de ${fmtNum(total)}</span><div class="pager"><button>‹</button><button>1</button><button>2</button><button>${pages}</button><button>›</button></div></div>`;}
+
+/* ---------- RECEPCIÓN DE REMITOS (integrado en Estado de facturación) ---------- */
+// Tilde 1: el chofer rinde a Tráfico  → lo tilda ADMIN TRÁFICO   (pend → traf)
+// Tilde 2: Tráfico rinde a Admin      → lo tilda ADMIN CLIENTES   (traf → adm)
+// Cambia el estado de rendición de una orden respetando el permiso del rol
+function toggleRecepcion(order,tilde){
+  const o=findOrden(order); if(!o) return;
+  if(tilde==='traf'){ // tilde chofer→Tráfico: solo Admin Tráfico (o gerencia)
+    if(!['admin_trafico','gerencia'].includes(currentRole)){alert('🔒 Solo Admin Tráfico puede confirmar la rendición del chofer a Tráfico.');return;}
+    o.rendicion = (o.rendicion==='pend') ? 'traf' : 'pend'; // si ya estaba en adm, baja a traf al destildar admin, no acá
+    if(o.rendicion==='pend'){o.fRecRemitos='';}
+    else if(!o.fRecRemitos){o.fRecRemitos=hoyStr();}
+  } else if(tilde==='adm'){ // tilde Tráfico→Admin: solo Admin Clientes (o gerencia)
+    if(!['admin_clientes','gerencia'].includes(currentRole)){alert('🔒 Solo Admin Clientes puede confirmar la recepción de los remitos que Tráfico rinde.');return;}
+    if(o.rendicion==='pend'){alert('⚠️ Primero el chofer debe rendir los remitos a Tráfico.');return;}
+    o.rendicion = (o.rendicion==='adm') ? 'traf' : 'adm';
+    if(o.rendicion==='adm'){ if(!o.fRendAdm) o.fRendAdm=hoyStr(); }
+    else { o.fRendAdm=''; } // al destildar, se pierde la fecha de rendición a admin
+  }
+  render();
+}
+function hoyStr(){const d=new Date();return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();}
+// dd/mm/yyyy → Date
+function parseDMY(s){if(!s)return null;const[d,m,y]=s.split('/').map(Number);return new Date(y,m-1,d);}
+// días entre dos fechas dd/mm/yyyy
+function diasEntre(a,b){const A=parseDMY(a),B=parseDMY(b);if(!A||!B)return null;return Math.round((B-A)/86400000);}
+// Tiempo promedio del remito: desde POD arrival (fEntrega) hasta que se rinde a Admin (fRendAdm)
+function tiempoPromedioRemito(){
+  const difs=DATA.ordenesEstado.map(o=>diasEntre(o.fEntrega,o.fRendAdm)).filter(d=>d!=null&&d>=0);
+  if(!difs.length)return null;
+  return difs.reduce((a,b)=>a+b,0)/difs.length;
+}
+
+// Helpers de recepción de remitos (usados dentro de Estado de facturación)
+const puedeTildarTraf=()=>['admin_trafico','gerencia'].includes(currentRole);
+const puedeTildarAdm =()=>['admin_clientes','gerencia'].includes(currentRole);
+function rcptCheck(o,tilde,checked,enabled){
+  return `<span class="rcpt-check ${enabled?'':'disabled'}"><input type="checkbox" ${checked?'checked':''} ${enabled?'':'disabled'} onchange="toggleRecepcion('${o.order.replace(/'/g,"\\'")}','${tilde}')"></span>`;
+}
 
 /* ---------- HISTÓRICO ---------- */
 function viewHistorico(){
@@ -646,6 +843,41 @@ function viewTarifCostos(){
     <div class="panel-body nopad"><div class="tbl-wrap"><table><thead><tr><th>Tag de costo</th><th>Tipo</th><th>Entidad (empleador)</th><th class="num">Tarifa</th><th>Unidad</th></tr></thead><tbody>${cos}</tbody></table></div></div></div>`;
 }
 
+/* ===================== HISTÓRICO DE FECHAS POR ORDEN ===================== */
+// Busca la orden en ordenesEstado (fuente maestra de fechas). Si no está, devuelve null.
+function findOrden(order){return DATA.ordenesEstado.find(o=>o.order===order)||null;}
+// Celda "Ver" que abre el timeline de fechas de la orden
+function histCell(order){
+  return `<span class="hist-link" onclick="openHist('${(order||'').replace(/'/g,"\\'")}')">Ver</span>`;
+}
+function openHist(order){
+  const o=findOrden(order);
+  const body=document.getElementById('histBody');
+  // Definición de los 5 hitos de fecha solicitados
+  const hitos=o?[
+    {label:'Fecha de carga',                 date:o.fCarga},
+    {label:'Fecha de entrega',               date:o.fEntrega},
+    {label:'Fecha recepción de remitos',     date:o.fRecRemitos},
+    {label:'Fecha folio aprobado empleador', date:o.fFolioEmpl},
+    {label:'Fecha folio aprobado proveedor (cliente)', date:o.fFolioProv},
+  ]:[];
+  if(!o){
+    body.innerHTML=`<div class="hist-head-order">N° de orden<br><b>${order}</b></div>
+      <p style="font-size:13px;color:var(--gris-suave)">No hay histórico de fechas cargado para esta orden en el set de demostración. En el sistema real, cada orden mantiene su línea de tiempo completa.</p>`;
+  }else{
+    const rend=ESTADOS_RENDICION[o.rendicion];
+    const items=hitos.map(h=>`<li class="${h.date?'done':''}"><span class="tl-dot"></span>
+      <div class="tl-label">${h.label}</div>
+      <div class="tl-date ${h.date?'':'empty'}">${h.date||'Pendiente'}</div></li>`).join('');
+    body.innerHTML=`<div class="hist-head-order">N° de orden<br><b>${o.order}</b><br>
+      <span style="color:var(--gris-suave)">${o.cliente} · ${o.empl}</span><br>
+      <span class="pill ${rend.pill}" style="margin-top:6px">Remitos: ${rend.label}</span></div>
+      <ul class="timeline">${items}</ul>`;
+  }
+  document.getElementById('histModal').classList.remove('hidden');
+}
+function closeHist(){document.getElementById('histModal').classList.add('hidden');}
+
 /* ===================== EXPORTADOR ===================== */
 let exportSel={};
 function openExport(){
@@ -670,6 +902,11 @@ function updateCount(){
 function exportAll(val){Object.values(COLS_BACK).flat().forEach(c=>exportSel[c]=val);renderExportCols();}
 function exportPreset(){
   const preset=['pod__planned_date','order__code','order__supplier_name','pod__employer_name','MontoPorViajeSupplier','MontoPorViajeEmployer','billing_supplier_folio','billing_supplier_status','billing_supplier_amount','billing_employer_folio','billing_employer_status','billing_employer_amount'];
+  Object.values(COLS_BACK).flat().forEach(c=>exportSel[c]=preset.includes(c));renderExportCols();
+}
+// Preset con el formato exacto solicitado por Admin Clientes (9 columnas mapeadas)
+function exportPresetAdminClientes(){
+  const preset=FORMATO_ADMIN_CLIENTES.map(f=>f.campo);
   Object.values(COLS_BACK).flat().forEach(c=>exportSel[c]=preset.includes(c));renderExportCols();
 }
 function doExport(){
