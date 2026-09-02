@@ -221,6 +221,33 @@
   .mini-kpi .m-sub{font-size:10.5px;color:var(--gris-suave);margin-top:3px}
   .rcpt-perm{font-size:12px;color:var(--gris-suave);margin:-8px 0 18px}
 
+  /* NÚMEROS DE REMITO + BADGES */
+  .rem-num{font-family:'Segoe UI',monospace;font-weight:700;font-size:12.5px;color:var(--gris-txt)}
+  .rem-empty{color:var(--gris-suave)}
+  .rem-badge{font-size:10px;font-weight:800;padding:2px 7px;border-radius:20px;display:inline-block;white-space:nowrap}
+  .rem-badge.ok{background:#E8F7F0;color:#0F7A4F}
+  .rem-badge.fix{background:#FBE9EA;color:#B02A34}
+  /* Modal de remito: input y opciones de validación */
+  #remitoModal .field{margin-top:14px}
+  #remitoModal .field label{display:block;font-size:12px;font-weight:700;color:var(--gris-suave);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px}
+  #remitoModal .field input{width:100%;padding:11px 13px;border:1.5px solid var(--gris-linea);border-radius:9px;font-size:14px;font-family:monospace;color:var(--gris-txt)}
+  #remitoModal .field input:focus{outline:none;border-color:var(--azul);box-shadow:0 0 0 3px rgba(0,81,155,.12)}
+  .rem-informado{display:flex;justify-content:space-between;align-items:center;background:var(--cian-suave);border:1px solid var(--azul-claro);border-radius:9px;padding:12px 14px;margin-top:14px}
+  .rem-informado .ri-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--azul-osc)}
+  .rem-informado .ri-val{font-family:monospace;font-weight:800;font-size:15px;color:var(--azul-osc)}
+  .val-opts{display:flex;flex-direction:column;gap:8px}
+  .val-opt{display:flex;align-items:flex-start;gap:10px;padding:11px 13px;border:1.5px solid var(--gris-linea);border-radius:9px;cursor:pointer;font-size:13px;color:var(--gris-txt)}
+  .val-opt:hover{border-color:var(--azul-claro);background:var(--cian-suave)}
+  .val-opt input{margin-top:2px;width:16px;height:16px;accent-color:var(--azul);cursor:pointer}
+  /* Bloque de remitos en el histórico */
+  .rem-hist{border:1px solid var(--gris-linea);border-radius:10px;overflow:hidden;margin:14px 0}
+  .rem-hist-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;font-size:13px;border-bottom:1px solid var(--gris-linea)}
+  .rem-hist-row:last-child{border-bottom:none}
+  .rem-hist-row.final{background:#FAFBFD}
+  .rem-hist-row .rh-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gris-suave)}
+  .rem-hist-row .rh-val{font-family:monospace;font-weight:700;color:var(--gris-txt)}
+  .hist-sub{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gris-suave);margin:16px 0 8px}
+
   /* HISTÓRICO DE FECHAS POR ORDEN (modal) */
   .hist-link{color:var(--azul);cursor:pointer;text-decoration:underline;text-decoration-style:dotted;font-weight:600}
   .hist-link:hover{color:var(--azul-osc)}
@@ -331,6 +358,18 @@
   </div>
 </div>
 
+<!-- MODAL CARGA / VALIDACIÓN DE REMITO -->
+<div class="modal-bg hidden" id="remitoModal">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-head">
+      <h3 id="remitoTitle">Remito</h3>
+      <button class="modal-close" onclick="closeRemito()">×</button>
+    </div>
+    <div class="modal-body" id="remitoBody"></div>
+    <div class="modal-foot" id="remitoFoot"></div>
+  </div>
+</div>
+
 <script>
 /* ===================== DATOS SIMULADOS ===================== */
 const DATA = {
@@ -395,31 +434,32 @@ const DATA = {
   // Órdenes con su doble estado (proveedor + empleador)
   // + fechas históricas (fCarga, fEntrega, fRecRemitos, fFolioEmpl, fFolioProv)
   // + estado de rendición de remitos (rendicion: 'pend' | 'traf' | 'adm')
+  // + remitoTraf: N° informado por Tráfico (chofer→Tráfico) · remitoAdm: N° validado/corregido por Admin (Tráfico→Admin)
   ordenesEstado:[
     {fecha:'16/03/2026',order:'0572026MTAR116JP5357',cliente:'YPF CHILE',empl:'ANDESMAR CARGAS S.A.',veh:'HLZF33',cond:'TITO OROS',
       folioProv:'',montoProv:214300,folioEmpl:'',montoEmpl:142000,estado:'pendTotal',
-      fCarga:'14/03/2026',fEntrega:'16/03/2026',fRecRemitos:'',fFolioEmpl:'',fFolioProv:'',rendicion:'pend'},
+      fCarga:'14/03/2026',fEntrega:'16/03/2026',fRecRemitos:'',fFolioEmpl:'',fFolioProv:'',rendicion:'pend',remitoTraf:'',remitoAdm:''},
     {fecha:'17/03/2026',order:'AGLCH043/2026TRPWSX21',cliente:'CD MENDOZA',empl:'ANDESMAR CARGAS S.A.',veh:'HLZF34',cond:'ANGEL GARAY',
       folioProv:'F-A-0013002',montoProv:305120,folioEmpl:'',montoEmpl:210300,estado:'pendEmpleador',
-      fCarga:'15/03/2026',fEntrega:'17/03/2026',fRecRemitos:'19/03/2026',fFolioEmpl:'',fFolioProv:'24/03/2026',rendicion:'traf'},
+      fCarga:'15/03/2026',fEntrega:'17/03/2026',fRecRemitos:'19/03/2026',fFolioEmpl:'',fFolioProv:'24/03/2026',rendicion:'traf',remitoTraf:'1-133186/87',remitoAdm:''},
     {fecha:'23/03/2026',order:'260320162226-57-PPF',cliente:'RHEEM SAN LUIS',empl:'TRANSPORTES MERCOTRUCK',veh:'245-NBC016',cond:'NESTOR F. GUERRA',
       folioProv:'',montoProv:421000,folioEmpl:'F-B-0004702',montoEmpl:298000,estado:'pendProveedor',
-      fCarga:'20/03/2026',fEntrega:'23/03/2026',fRecRemitos:'25/03/2026',fFolioEmpl:'28/03/2026',fFolioProv:'',rendicion:'traf'},
+      fCarga:'20/03/2026',fEntrega:'23/03/2026',fRecRemitos:'25/03/2026',fFolioEmpl:'28/03/2026',fFolioProv:'',rendicion:'traf',remitoTraf:'2-045521',remitoAdm:''},
     {fecha:'14/03/2026',order:'ADC-9902',cliente:'ANDESMAR CARGAS S.A',empl:'AUTOTRANSPORTES ANDESMAR',veh:'HKRD90',cond:'JOSE HERRERA',
       folioProv:'F-A-0013188',montoProv:412300,folioEmpl:'F-B-0004610',montoEmpl:118400,estado:'facturadoTotal',
-      fCarga:'12/03/2026',fEntrega:'14/03/2026',fRecRemitos:'16/03/2026',fFolioEmpl:'20/03/2026',fFolioProv:'22/03/2026',rendicion:'adm',fRendAdm:'24/03/2026'},
+      fCarga:'12/03/2026',fEntrega:'14/03/2026',fRecRemitos:'16/03/2026',fFolioEmpl:'20/03/2026',fFolioProv:'22/03/2026',rendicion:'adm',fRendAdm:'24/03/2026',remitoTraf:'1-098234',remitoAdm:'1-098234'},
     {fecha:'26/03/2026',order:'260323125216-2-PVV',cliente:'CND MENDOZA',empl:'ANDESMAR CARGAS S.A.',veh:'309-AG994HA',cond:'MATIAS SILVA',
       folioProv:'',montoProv:512300,folioEmpl:'',montoEmpl:356200,estado:'pendTotal',
-      fCarga:'24/03/2026',fEntrega:'26/03/2026',fRecRemitos:'',fFolioEmpl:'',fFolioProv:'',rendicion:'pend'},
+      fCarga:'24/03/2026',fEntrega:'26/03/2026',fRecRemitos:'',fFolioEmpl:'',fFolioProv:'',rendicion:'pend',remitoTraf:'',remitoAdm:''},
     {fecha:'02/03/2026',order:'TP2026-0912',cliente:'TECH PACK SRL',empl:'ANDESMAR CARGAS S.A.',veh:'HLZF20',cond:'LUIS PEREZ',
       folioProv:'F-A-0012843',montoProv:867400,folioEmpl:'F-B-0004521',montoEmpl:512700,estado:'facturadoTotal',
-      fCarga:'28/02/2026',fEntrega:'02/03/2026',fRecRemitos:'04/03/2026',fFolioEmpl:'08/03/2026',fFolioProv:'10/03/2026',rendicion:'adm',fRendAdm:'09/03/2026'},
+      fCarga:'28/02/2026',fEntrega:'02/03/2026',fRecRemitos:'04/03/2026',fFolioEmpl:'08/03/2026',fFolioProv:'10/03/2026',rendicion:'adm',fRendAdm:'09/03/2026',remitoTraf:'1-133190/91',remitoAdm:'1-133190/92'},
     {fecha:'27/03/2026',order:'AC02926PWSX18',cliente:'YPF CHILE',empl:'AUTOTRANSPORTES ANDESMAR',veh:'HKRD90',cond:'JOSE HERRERA',
       folioProv:'F-A-0012901',montoProv:167800,folioEmpl:'',montoEmpl:118400,estado:'pendEmpleador',
-      fCarga:'25/03/2026',fEntrega:'27/03/2026',fRecRemitos:'29/03/2026',fFolioEmpl:'',fFolioProv:'01/04/2026',rendicion:'traf'},
+      fCarga:'25/03/2026',fEntrega:'27/03/2026',fRecRemitos:'29/03/2026',fFolioEmpl:'',fFolioProv:'01/04/2026',rendicion:'traf',remitoTraf:'3-771200',remitoAdm:''},
     {fecha:'31/03/2026',order:'260331172141-PPF',cliente:'CND MENDOZA',empl:'ANDESMAR CARGAS S.A.',veh:'299-AG188VN',cond:'JORGE VALEN…',
       folioProv:'',montoProv:388600,folioEmpl:'F-B-0004610',montoEmpl:271900,estado:'pendProveedor',
-      fCarga:'29/03/2026',fEntrega:'31/03/2026',fRecRemitos:'02/04/2026',fFolioEmpl:'05/04/2026',fFolioProv:'',rendicion:'pend'},
+      fCarga:'29/03/2026',fEntrega:'31/03/2026',fRecRemitos:'02/04/2026',fFolioEmpl:'05/04/2026',fFolioProv:'',rendicion:'pend',remitoTraf:'',remitoAdm:''},
   ],
 };
 
@@ -446,6 +486,7 @@ const COLS_BACK = {
   'Distancia / km':['pod__distance','DistanciaDrivinSupplier','DistanciaDrivinEmployer','pod__odometer_start','pod__odometer_end'],
   'Costos / montos':['MontoPorViajeSupplier','MontoPorViajeEmployer','order__custom_6','order__units_1','order__units_3','order__cost'],
   'Facturación':['billing_supplier_folio','billing_supplier_status','billing_supplier_amount','billing_employer_folio','billing_employer_status','billing_employer_amount'],
+  'Recepción de remitos':['remito_estado','remito_informado_trafico','remito_validado_admin','remito_rendido_final','remito_desvio','fecha_rendido_admin'],
 };
 
 /* Formato solicitado por Admin Clientes: mapeo columna visible → campo del back.
@@ -646,11 +687,20 @@ function viewEstadoFact(){
     const fE=o.folioEmpl?`<b>${o.folioEmpl}</b>`:'<span style="color:var(--gris-suave)">—</span>';
     const chkTraf=o.rendicion!=='pend';   // chofer rindió a Tráfico
     const chkAdm =o.rendicion==='adm';     // Tráfico rindió a Admin
+    // números de remito
+    const rTraf = o.remitoTraf ? `<span class="rem-num">${o.remitoTraf}</span>` : '<span class="rem-empty">—</span>';
+    const desvio = remitoDesvio(o);
+    let rRend;
+    if(o.rendicion!=='adm'){ rRend='<span class="rem-empty">—</span>'; }
+    else if(desvio){ rRend=`<span class="rem-num">${o.remitoAdm}</span> <span class="rem-badge fix" title="Corregido por Admin. Informado por Tráfico: ${o.remitoTraf}">⚠ Corregido</span>`; }
+    else { rRend=`<span class="rem-num">${o.remitoAdm}</span> <span class="rem-badge ok">✓ OK</span>`; }
     return `<tr class="${orderSearch&&matchOrder(o.order)?'match-row':''}"><td>${o.fecha}</td><td>${o.order}</td><td>${o.cliente}</td><td>${o.empl}</td><td>${o.veh}</td>
       <td>${fP}</td><td class="num">${fmtMoney(o.montoProv)}</td>
       <td>${fE}</td><td class="num">${fmtMoney(o.montoEmpl)}</td>
       <td style="text-align:center">${rcptCheck(o,'traf',chkTraf,pTraf)}</td>
+      <td>${rTraf}</td>
       <td style="text-align:center">${rcptCheck(o,'adm',chkAdm,pAdm&&o.rendicion!=='pend')}</td>
+      <td>${rRend}</td>
       <td><span class="pill ${rend.pill}">${rend.label}</span></td>
       <td>${histCell(o.order)}</td>
       <td><span class="pill ${est.pill}">${est.label}</span></td></tr>`;
@@ -694,13 +744,16 @@ function viewEstadoFact(){
     <div class="panel-body nopad"><div class="tbl-wrap"><table>
       <thead><tr><th>Fecha</th><th>Order code</th><th>Cliente</th><th>Empleador</th><th>Vehículo</th>
         <th>Folio proveedor</th><th class="num">Monto prov.</th><th>Folio empleador</th><th class="num">Monto empl.</th>
-        <th style="text-align:center">Chofer → Tráfico</th><th style="text-align:center">Tráfico → Admin</th><th>Remitos</th>
-        <th>Histórico</th><th>Estado</th></tr></thead>
+        <th style="text-align:center">Chofer → Tráfico</th><th>Remito informado</th>
+        <th style="text-align:center">Tráfico → Admin</th><th>Remito rendido</th>
+        <th>Remitos</th><th>Histórico</th><th>Estado</th></tr></thead>
       <tbody>${rows}</tbody></table></div>
       <div class="rcpt-legend">
         <span><span class="pill rend-pend">Pendiente</span> El chofer aún no rindió</span>
-        <span><span class="pill rend-traf">Rendido a Tráfico</span> Chofer rindió a Tráfico</span>
-        <span><span class="pill rend-adm">Rendido a Admin</span> Tráfico rindió a Admin Clientes</span>
+        <span><span class="pill rend-traf">Rendido a Tráfico</span> Chofer rindió a Tráfico (con N° informado)</span>
+        <span><span class="pill rend-adm">Rendido a Admin</span> Tráfico rindió a Admin (validado)</span>
+        <span><span class="rem-badge ok">✓ OK</span> Admin validó igual a lo informado</span>
+        <span><span class="rem-badge fix">⚠ Corregido</span> Admin marcó desvío (quedan ambos N°)</span>
       </div>
       <div class="tbl-foot"><span>Mostrando ${filas.length}${orderSearch?'':' de '+fmtNum(total)} órdenes</span>
         ${orderSearch?'':`<div class="pager"><button>‹</button><button>1</button><button>2</button><button>784</button><button>›</button></div>`}</div>
@@ -771,25 +824,98 @@ function viewFactEmpleador(){
 function tblFoot(shown,total,pages){return `<div class="tbl-foot"><span>Mostrando ${shown} de ${fmtNum(total)}</span><div class="pager"><button>‹</button><button>1</button><button>2</button><button>${pages}</button><button>›</button></div></div>`;}
 
 /* ---------- RECEPCIÓN DE REMITOS (integrado en Estado de facturación) ---------- */
-// Tilde 1: el chofer rinde a Tráfico  → lo tilda ADMIN TRÁFICO   (pend → traf)
-// Tilde 2: Tráfico rinde a Admin      → lo tilda ADMIN CLIENTES   (traf → adm)
-// Cambia el estado de rendición de una orden respetando el permiso del rol
+// Tilde 1: el chofer rinde a Tráfico → ADMIN TRÁFICO carga el N° de remito informado (pend → traf)
+// Tilde 2: Tráfico rinde a Admin → ADMIN CLIENTES valida ese N°: OK o corrige (traf → adm)
+// Siempre quedan ambos: remitoTraf (informado) + remitoAdm (final validado/corregido)
+
+let rcptCtx=null; // {order, tilde}
+// Click en el check: abre el modal correspondiente o destilda
 function toggleRecepcion(order,tilde){
   const o=findOrden(order); if(!o) return;
-  if(tilde==='traf'){ // tilde chofer→Tráfico: solo Admin Tráfico (o gerencia)
-    if(!['admin_trafico','gerencia'].includes(currentRole)){alert('🔒 Solo Admin Tráfico puede confirmar la rendición del chofer a Tráfico.');return;}
-    o.rendicion = (o.rendicion==='pend') ? 'traf' : 'pend'; // si ya estaba en adm, baja a traf al destildar admin, no acá
-    if(o.rendicion==='pend'){o.fRecRemitos='';}
-    else if(!o.fRecRemitos){o.fRecRemitos=hoyStr();}
-  } else if(tilde==='adm'){ // tilde Tráfico→Admin: solo Admin Clientes (o gerencia)
-    if(!['admin_clientes','gerencia'].includes(currentRole)){alert('🔒 Solo Admin Clientes puede confirmar la recepción de los remitos que Tráfico rinde.');return;}
-    if(o.rendicion==='pend'){alert('⚠️ Primero el chofer debe rendir los remitos a Tráfico.');return;}
-    o.rendicion = (o.rendicion==='adm') ? 'traf' : 'adm';
-    if(o.rendicion==='adm'){ if(!o.fRendAdm) o.fRendAdm=hoyStr(); }
-    else { o.fRendAdm=''; } // al destildar, se pierde la fecha de rendición a admin
+  if(tilde==='traf'){
+    if(!puedeTildarTraf()){alert('🔒 Solo Admin Tráfico puede confirmar la rendición del chofer a Tráfico.');render();return;}
+    if(o.rendicion==='pend'){ // TILDAR: pedir N° de remito informado
+      openRemito(order,'traf');
+    } else { // DESTILDAR: revertir a pendiente (limpia todo lo posterior)
+      if(!confirm('¿Anular la rendición del chofer a Tráfico? Se borrará el N° informado y la validación de Admin.')) {render();return;}
+      o.rendicion='pend'; o.fRecRemitos=''; o.remitoTraf=''; o.remitoAdm=''; o.fRendAdm='';
+      render();
+    }
+  } else if(tilde==='adm'){
+    if(!puedeTildarAdm()){alert('🔒 Solo Admin Clientes puede validar y confirmar la recepción de los remitos.');render();return;}
+    if(o.rendicion==='pend'){alert('⚠️ Primero el chofer debe rendir los remitos a Tráfico.');render();return;}
+    if(o.rendicion==='traf'){ // TILDAR: abrir validación
+      openRemito(order,'adm');
+    } else { // DESTILDAR: volver a "rendido a tráfico"
+      if(!confirm('¿Anular la validación de Admin? La orden vuelve a "Rendido a Tráfico".')) {render();return;}
+      o.rendicion='traf'; o.remitoAdm=''; o.fRendAdm='';
+      render();
+    }
   }
-  render();
 }
+
+// Abre el modal para cargar (traf) o validar (adm) el N° de remito
+function openRemito(order,tilde){
+  const o=findOrden(order); if(!o) return;
+  rcptCtx={order,tilde};
+  const body=document.getElementById('remitoBody');
+  const foot=document.getElementById('remitoFoot');
+  document.getElementById('remitoTitle').textContent = tilde==='traf' ? '🚚 Rendición chofer → Tráfico' : '✅ Validación Tráfico → Admin';
+  if(tilde==='traf'){
+    body.innerHTML=`<div class="hist-head-order">N° de orden<br><b>${o.order}</b><br><span style="color:var(--gris-suave)">${o.cliente} · ${o.cond}</span></div>
+      <div class="field"><label>N° de remito informado por Tráfico</label>
+        <input type="text" id="remInput" placeholder="Ej: 1-133186/87" value="${(o.remitoTraf||'').replace(/"/g,'&quot;')}">
+        <p style="font-size:12px;color:var(--gris-suave);margin-top:6px">Este número queda registrado como <b>lo informado por Tráfico</b> y luego lo valida Admin.</p></div>`;
+    foot.innerHTML=`<button class="btn-ghost" onclick="closeRemito()">Cancelar</button>
+      <button class="btn-primary" onclick="saveRemitoTraf()">Confirmar rendición a Tráfico</button>`;
+  } else {
+    const informado=o.remitoTraf||'—';
+    body.innerHTML=`<div class="hist-head-order">N° de orden<br><b>${o.order}</b><br><span style="color:var(--gris-suave)">${o.cliente} · ${o.empl}</span></div>
+      <div class="rem-informado"><span class="ri-label">Informado por Tráfico</span><span class="ri-val">${informado}</span></div>
+      <p style="font-size:13px;color:var(--gris-txt);margin:14px 0 10px">¿El número es correcto?</p>
+      <div class="val-opts">
+        <label class="val-opt"><input type="radio" name="valOpt" value="ok" checked onchange="toggleCorrec()"> <span><b>Está OK</b> — confirmar tal cual lo informado</span></label>
+        <label class="val-opt"><input type="radio" name="valOpt" value="fix" onchange="toggleCorrec()"> <span><b>Marcar desvío</b> — el número real es otro</span></label>
+      </div>
+      <div class="field" id="corrWrap" style="display:none;margin-top:12px"><label>N° de remito corregido por Admin</label>
+        <input type="text" id="remInput" placeholder="N° real recibido" value="${(o.remitoTraf||'').replace(/"/g,'&quot;')}">
+        <p style="font-size:12px;color:var(--gris-suave);margin-top:6px">Quedan guardados <b>ambos</b>: el informado por Tráfico y el corregido por Admin. El valor final será el corregido.</p></div>`;
+    foot.innerHTML=`<button class="btn-ghost" onclick="closeRemito()">Cancelar</button>
+      <button class="btn-primary" onclick="saveRemitoAdm()">Validar y rendir a Admin</button>`;
+  }
+  document.getElementById('remitoModal').classList.remove('hidden');
+  setTimeout(()=>{const i=document.getElementById('remInput');if(i){i.focus();}},50);
+}
+function toggleCorrec(){
+  const fix=document.querySelector('input[name="valOpt"]:checked').value==='fix';
+  document.getElementById('corrWrap').style.display = fix?'block':'none';
+}
+function closeRemito(){document.getElementById('remitoModal').classList.add('hidden');rcptCtx=null;render();}
+function saveRemitoTraf(){
+  const o=findOrden(rcptCtx.order); if(!o){closeRemito();return;}
+  const val=(document.getElementById('remInput').value||'').trim();
+  if(!val){alert('Ingresá el N° de remito informado por Tráfico.');return;}
+  o.remitoTraf=val; o.rendicion='traf'; if(!o.fRecRemitos)o.fRecRemitos=hoyStr();
+  document.getElementById('remitoModal').classList.add('hidden'); rcptCtx=null; render();
+}
+function saveRemitoAdm(){
+  const o=findOrden(rcptCtx.order); if(!o){closeRemito();return;}
+  const fix=document.querySelector('input[name="valOpt"]:checked').value==='fix';
+  if(fix){
+    const val=(document.getElementById('remInput').value||'').trim();
+    if(!val){alert('Ingresá el N° de remito corregido.');return;}
+    o.remitoAdm=val; // corregido: queda distinto de remitoTraf
+  } else {
+    o.remitoAdm=o.remitoTraf; // OK: final = informado
+  }
+  o.rendicion='adm'; if(!o.fRendAdm)o.fRendAdm=hoyStr();
+  document.getElementById('remitoModal').classList.add('hidden'); rcptCtx=null; render();
+}
+
+// Valor final "Remito rendido" + si hubo desvío
+function remitoRendido(o){return o.remitoAdm||'';}
+function remitoDesvio(o){return o.remitoAdm && o.remitoTraf && o.remitoAdm!==o.remitoTraf;}
+
 function hoyStr(){const d=new Date();return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();}
 // dd/mm/yyyy → Date
 function parseDMY(s){if(!s)return null;const[d,m,y]=s.split('/').map(Number);return new Date(y,m-1,d);}
@@ -869,9 +995,23 @@ function openHist(order){
     const items=hitos.map(h=>`<li class="${h.date?'done':''}"><span class="tl-dot"></span>
       <div class="tl-label">${h.label}</div>
       <div class="tl-date ${h.date?'':'empty'}">${h.date||'Pendiente'}</div></li>`).join('');
+    // Bloque de remitos: informado por Tráfico + validado/corregido por Admin
+    const desvio=remitoDesvio(o);
+    const rendVal = o.rendicion==='adm'
+      ? (desvio
+          ? `<span class="rem-num">${o.remitoAdm}</span> <span class="rem-badge fix">⚠ Corregido</span>`
+          : `<span class="rem-num">${o.remitoAdm}</span> <span class="rem-badge ok">✓ OK</span>`)
+      : '<span class="rem-empty">— pendiente de validación</span>';
+    const remBlock=`<div class="rem-hist">
+      <div class="rem-hist-row"><span class="rh-label">Informado por Tráfico</span><span class="rh-val">${o.remitoTraf||'<span class=\"rem-empty\">—</span>'}</span></div>
+      <div class="rem-hist-row"><span class="rh-label">Validado por Admin</span><span class="rh-val">${o.remitoAdm||'<span class=\"rem-empty\">—</span>'}</span></div>
+      <div class="rem-hist-row final"><span class="rh-label">Remito rendido (final)</span><span class="rh-val">${rendVal}</span></div>
+    </div>`;
     body.innerHTML=`<div class="hist-head-order">N° de orden<br><b>${o.order}</b><br>
       <span style="color:var(--gris-suave)">${o.cliente} · ${o.empl}</span><br>
       <span class="pill ${rend.pill}" style="margin-top:6px">Remitos: ${rend.label}</span></div>
+      ${remBlock}
+      <div class="hist-sub">Línea de tiempo</div>
       <ul class="timeline">${items}</ul>`;
   }
   document.getElementById('histModal').classList.remove('hidden');
